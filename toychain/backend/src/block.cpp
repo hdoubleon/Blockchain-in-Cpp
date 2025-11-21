@@ -47,3 +47,9 @@ void Block::mineBlock(int diff)
 
     std::cout << "Block mined: " << hash << std::endl;
 }
+
+// --- setter 구현 (블록 변조용) ---
+void Block::setTransactions(const std::vector<Transaction>& txs) { transactions_ = txs; }
+void Block::setHash(const std::string& h) { hash_ = h; }
+void Block::setNonce(std::size_t n) { nonce_ = n; }
+void Block::setTimestamp(const std::string& ts) { timestamp_ = ts; }

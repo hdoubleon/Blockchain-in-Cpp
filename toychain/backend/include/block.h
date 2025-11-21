@@ -1,3 +1,8 @@
+    // --- setter 함수 추가 (블록 변조용) ---
+    void setTransactions(const std::vector<Transaction>& txs) { transactions_ = txs; }
+    void setHash(const std::string& hash) { hash_ = hash; }
+    void setNonce(std::size_t nonce) { nonce_ = nonce; }
+    void setTimestamp(const std::string& ts) { timestamp_ = ts; }
 #pragma once
 
 #include "transaction.h"
