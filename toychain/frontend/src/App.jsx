@@ -241,7 +241,9 @@ function App() {
       {isMining && <MiningAnimation />}
 
       <BlockchainView
-        blocks={blocks}
+        blocks={blocks.map((block, i) =>
+        i === 0 ? { ...block, isValid: true } : block
+        )}
         pendingTransactions={pendingTransactions}
         onEditBlock={(index) => setEditingBlock(index)}
       />

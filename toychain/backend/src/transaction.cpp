@@ -1,25 +1,12 @@
 #include "transaction.h"
-
 #include <sstream>
-#include <utility>
 
-Transaction::Transaction(std::string sender, std::string recipient, double amount)
-    : sender_(std::move(sender)), recipient_(std::move(recipient)), amount_(amount) {}
+Transaction::Transaction(const std::string &from, const std::string &to, double amt)
+    : sender(from), recipient(to), amount(amt) {}
 
-const std::string& Transaction::getSender() const noexcept {
-    return sender_;
-}
-
-const std::string& Transaction::getRecipient() const noexcept {
-    return recipient_;
-}
-
-double Transaction::getAmount() const noexcept {
-    return amount_;
-}
-
-std::string Transaction::toString() const {
-    std::ostringstream oss;
-    oss << sender_ << "->" << recipient_ << ":" << amount_;
-    return oss.str();
+std::string Transaction::toString() const
+{
+    std::stringstream ss;
+    ss << sender << " -> " << recipient << ": " << amount;
+    return ss.str();
 }
