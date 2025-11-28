@@ -1,7 +1,7 @@
 import React from "react";
 import "./BlockchainView.css";
 
-function BlockchainView({ blocks, pendingTransactions, onEditBlock }) {
+function BlockchainView({ blocks, pendingTransactions = [], tamperMode = false, onEditBlock }) {
   return (
     <div className="blockchain-container">
       {pendingTransactions.length > 0 && (
@@ -10,7 +10,12 @@ function BlockchainView({ blocks, pendingTransactions, onEditBlock }) {
           <div className="pending-box">
             {pendingTransactions.map((tx, i) => (
               <div key={i} className="pending-tx">
-                {tx.sender} → {tx.recipient}: {tx.amount} BTC
+                <div style={{ fontWeight: 600 }}>
+                  TX {tx.id.slice(0, 12)}...
+                </div>
+                <div style={{ fontSize: "0.9rem", color: "#475569" }}>
+                  {tx.inputs.length === 0 ? "coinbase" : `${tx.inputs.length} inputs`} → {tx.outputs.length} outputs
+                </div>
               </div>
             ))}
           </div>
@@ -19,17 +24,19 @@ function BlockchainView({ blocks, pendingTransactions, onEditBlock }) {
 
       <h2>⛓️ Blockchain</h2>
       <div className="chain">
-        {blocks.map((block, index) => (
+        {blocks.map((block, index) => {
+          const nextBroken = blocks[index + 1] && !blocks[index + 1].isValid;
+          return (
           <React.Fragment key={block.index}>
             <div className={`block ${block.isValid ? "valid" : "invalid"}`}>
               <div className="block-header">
                 <span className="block-index">Block #{block.index}</span>
-                {block.isValid ? (
-                  <span className="status valid">✅ Valid</span>
-                ) : (
-                  <span className="status invalid">❌ Invalid</span>
-                )}
+                <span className={`status ${block.isValid ? "valid" : "invalid"}`}>
+                  {block.isValid ? "✅ Valid" : "❌ Broken"}
+                </span>
               </div>
+
+              {!block.isValid && <div className="block-break-overlay">CHAIN BROKEN</div>}
 
               <div className="block-body">
                 <div className="block-field">
@@ -44,34 +51,66 @@ function BlockchainView({ blocks, pendingTransactions, onEditBlock }) {
                   <strong>Nonce:</strong> {block.nonce}
                 </div>
                 <div className="block-field">
+                  <strong>Difficulty:</strong> {block.difficulty}
+                </div>
+                <div className="block-field">
                   <strong>Timestamp:</strong> {block.timestamp}
                 </div>
 
                 <details>
                   <summary>Transactions ({block.transactions.length})</summary>
-                  {block.transactions.map((tx, i) => (
-                    <div key={i} className="transaction">
-                      {tx.sender} → {tx.recipient}: {tx.amount}
-                    </div>
-                  ))}
+                  {block.transactions.map((tx, i) => {
+                    const isCoinbase = tx.inputs.length === 0;
+                    return (
+                      <div key={i} className="transaction">
+                        <div style={{ fontWeight: 600 }}>
+                          TX {tx.id.slice(0, 12)}...
+                        </div>
+                        <div style={{ fontSize: "0.9rem", color: "#475569" }}>
+                          {isCoinbase ? "coinbase" : `${tx.inputs.length} inputs`} → {tx.outputs.length} outputs
+                        </div>
+                        <div className="tx-section">
+                          <strong>Inputs:</strong>{" "}
+                          {isCoinbase ? (
+                            <span>— (block reward)</span>
+                          ) : (
+                            tx.inputs.map((input, idx) => (
+                              <div key={idx} className="tx-io">
+                                {input.txId.slice(0, 10)}...:{input.outputIndex} ({input.signature})
+                              </div>
+                            ))
+                          )}
+                        </div>
+                        <div className="tx-section">
+                          <strong>Outputs:</strong>
+                          {tx.outputs.map((output, idx) => (
+                            <div key={idx} className="tx-io">
+                              {output.address} — {output.amount}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </details>
               </div>
 
-              {block.index > 0 && (
-                <button className="tamper-btn" onClick={() => onEditBlock(index)}>
-                  💣 Tamper
+              {tamperMode && block.index > 0 && (
+                <button className="tamper-btn" onClick={() => onEditBlock && onEditBlock(index)}>
+                  ✏️ Tamper Transactions
                 </button>
               )}
             </div>
 
             {index < blocks.length - 1 && (
-              <div className={`chain-link ${blocks[index + 1].isValid ? "valid" : "broken"}`}>
+              <div className={`chain-link ${nextBroken ? "broken" : "valid"}`}>
                 <div className="link-line"></div>
-                {!blocks[index + 1].isValid && <span className="break-label">⚠️ BROKEN</span>}
+                {nextBroken && <span className="break-label">⚡ Link Broken</span>}
               </div>
             )}
           </React.Fragment>
-        ))}
+        );
+        })}
       </div>
     </div>
   );

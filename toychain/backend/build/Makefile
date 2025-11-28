@@ -177,6 +177,30 @@ src/blockchain.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/toychain_server.dir/build.make CMakeFiles/toychain_server.dir/src/blockchain.cpp.s
 .PHONY : src/blockchain.cpp.s
 
+src/db/Database.o: src/db/Database.cpp.o
+.PHONY : src/db/Database.o
+
+# target to build an object file
+src/db/Database.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/toychain_server.dir/build.make CMakeFiles/toychain_server.dir/src/db/Database.cpp.o
+.PHONY : src/db/Database.cpp.o
+
+src/db/Database.i: src/db/Database.cpp.i
+.PHONY : src/db/Database.i
+
+# target to preprocess a source file
+src/db/Database.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/toychain_server.dir/build.make CMakeFiles/toychain_server.dir/src/db/Database.cpp.i
+.PHONY : src/db/Database.cpp.i
+
+src/db/Database.s: src/db/Database.cpp.s
+.PHONY : src/db/Database.s
+
+# target to generate assembly for a file
+src/db/Database.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/toychain_server.dir/build.make CMakeFiles/toychain_server.dir/src/db/Database.cpp.s
+.PHONY : src/db/Database.cpp.s
+
 src/main.o: src/main.cpp.o
 .PHONY : src/main.o
 
@@ -249,6 +273,30 @@ src/transaction.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/toychain_server.dir/build.make CMakeFiles/toychain_server.dir/src/transaction.cpp.s
 .PHONY : src/transaction.cpp.s
 
+src/utxo.o: src/utxo.cpp.o
+.PHONY : src/utxo.o
+
+# target to build an object file
+src/utxo.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/toychain_server.dir/build.make CMakeFiles/toychain_server.dir/src/utxo.cpp.o
+.PHONY : src/utxo.cpp.o
+
+src/utxo.i: src/utxo.cpp.i
+.PHONY : src/utxo.i
+
+# target to preprocess a source file
+src/utxo.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/toychain_server.dir/build.make CMakeFiles/toychain_server.dir/src/utxo.cpp.i
+.PHONY : src/utxo.cpp.i
+
+src/utxo.s: src/utxo.cpp.s
+.PHONY : src/utxo.s
+
+# target to generate assembly for a file
+src/utxo.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/toychain_server.dir/build.make CMakeFiles/toychain_server.dir/src/utxo.cpp.s
+.PHONY : src/utxo.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -264,6 +312,9 @@ help:
 	@echo "... src/blockchain.o"
 	@echo "... src/blockchain.i"
 	@echo "... src/blockchain.s"
+	@echo "... src/db/Database.o"
+	@echo "... src/db/Database.i"
+	@echo "... src/db/Database.s"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
@@ -273,6 +324,9 @@ help:
 	@echo "... src/transaction.o"
 	@echo "... src/transaction.i"
 	@echo "... src/transaction.s"
+	@echo "... src/utxo.o"
+	@echo "... src/utxo.i"
+	@echo "... src/utxo.s"
 .PHONY : help
 
 

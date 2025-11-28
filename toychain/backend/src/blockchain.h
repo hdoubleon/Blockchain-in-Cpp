@@ -2,7 +2,8 @@
 #define BLOCKCHAIN_H
 
 #include "block.h"
-#include "transaction.h"
+#include "utxo.h"
+#include "db/Database.hpp"
 #include <vector>
 #include <unordered_map>
 
@@ -10,7 +11,9 @@ class Blockchain
 {
 private:
     std::vector<Block> chain;
-    std::vector<Transaction> pendingTransactions;
+    std::vector<UTXOTransaction> pendingTransactions;
+    UTXOSet utxoSet;
+    Database *database;
     int difficulty;
     double miningReward;
 
@@ -19,11 +22,12 @@ private:
 
 public:
     Blockchain();
+    void attachDatabase(Database *db) { database = db; }
 
     Block createGenesisBlock();
     Block getLatestBlock() const;
     void minePendingTransactions(const std::string &miningRewardAddress);
-    void addTransaction(const Transaction &transaction);
+    bool addTransaction(const std::string &from, const std::string &to, double amount, std::string &error);
 
     bool isChainValid() const;
 
@@ -38,6 +42,14 @@ public:
     int calculateNewDifficulty() const;
 
     std::unordered_map<std::string, double> getBalances() const;
+    const std::vector<UTXOTransaction> &getPendingTransactions() const { return pendingTransactions; }
+
+    bool saveToFile(const std::string &path) const;
+    bool loadFromFile(const std::string &path);
+
+private:
+    bool isUTXOInPending(const std::string &txId, int index) const;
+    void applyTransactionToUTXOSet(const UTXOTransaction &tx);
 };
 
 #endif

@@ -4,7 +4,7 @@
 #include <openssl/sha.h>
 #include <iostream>
 
-Block::Block(int idx, const std::vector<Transaction> &txs, const std::string &prevHash)
+Block::Block(int idx, const std::vector<UTXOTransaction> &txs, const std::string &prevHash)
     : index(idx), transactions(txs), previousHash(prevHash), nonce(0), difficulty(0)
 {
     timestamp = std::time(nullptr);
@@ -47,9 +47,3 @@ void Block::mineBlock(int diff)
 
     std::cout << "Block mined: " << hash << std::endl;
 }
-
-// --- setter 구현 (블록 변조용) ---
-void Block::setTransactions(const std::vector<Transaction>& txs) { transactions_ = txs; }
-void Block::setHash(const std::string& h) { hash_ = h; }
-void Block::setNonce(std::size_t n) { nonce_ = n; }
-void Block::setTimestamp(const std::string& ts) { timestamp_ = ts; }

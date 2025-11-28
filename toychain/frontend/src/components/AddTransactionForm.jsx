@@ -81,7 +81,7 @@ function AddTransactionForm({ onAdd, onMine }) {
         </button>
         <button
           type="button"
-          onClick={onMine}
+          onClick={() => onMine()}
           style={{
             padding: "0.75rem 2rem",
             fontSize: "1rem",

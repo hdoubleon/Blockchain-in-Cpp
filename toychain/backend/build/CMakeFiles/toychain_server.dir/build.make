@@ -128,10 +128,24 @@ CMakeFiles/toychain_server.dir/src/blockchain.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/toychain_server.dir/src/blockchain.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S "/Users/max/Desktop/blockchain in c+/toychain/backend/src/blockchain.cpp" -o CMakeFiles/toychain_server.dir/src/blockchain.cpp.s
 
+CMakeFiles/toychain_server.dir/src/utxo.cpp.o: CMakeFiles/toychain_server.dir/flags.make
+CMakeFiles/toychain_server.dir/src/utxo.cpp.o: /Users/max/Desktop/blockchain\ in\ c+/toychain/backend/src/utxo.cpp
+CMakeFiles/toychain_server.dir/src/utxo.cpp.o: CMakeFiles/toychain_server.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/Users/max/Desktop/blockchain in c+/toychain/backend/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/toychain_server.dir/src/utxo.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/toychain_server.dir/src/utxo.cpp.o -MF CMakeFiles/toychain_server.dir/src/utxo.cpp.o.d -o CMakeFiles/toychain_server.dir/src/utxo.cpp.o -c "/Users/max/Desktop/blockchain in c+/toychain/backend/src/utxo.cpp"
+
+CMakeFiles/toychain_server.dir/src/utxo.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/toychain_server.dir/src/utxo.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E "/Users/max/Desktop/blockchain in c+/toychain/backend/src/utxo.cpp" > CMakeFiles/toychain_server.dir/src/utxo.cpp.i
+
+CMakeFiles/toychain_server.dir/src/utxo.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/toychain_server.dir/src/utxo.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S "/Users/max/Desktop/blockchain in c+/toychain/backend/src/utxo.cpp" -o CMakeFiles/toychain_server.dir/src/utxo.cpp.s
+
 CMakeFiles/toychain_server.dir/src/server.cpp.o: CMakeFiles/toychain_server.dir/flags.make
 CMakeFiles/toychain_server.dir/src/server.cpp.o: /Users/max/Desktop/blockchain\ in\ c+/toychain/backend/src/server.cpp
 CMakeFiles/toychain_server.dir/src/server.cpp.o: CMakeFiles/toychain_server.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/Users/max/Desktop/blockchain in c+/toychain/backend/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/toychain_server.dir/src/server.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/Users/max/Desktop/blockchain in c+/toychain/backend/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/toychain_server.dir/src/server.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/toychain_server.dir/src/server.cpp.o -MF CMakeFiles/toychain_server.dir/src/server.cpp.o.d -o CMakeFiles/toychain_server.dir/src/server.cpp.o -c "/Users/max/Desktop/blockchain in c+/toychain/backend/src/server.cpp"
 
 CMakeFiles/toychain_server.dir/src/server.cpp.i: cmake_force
@@ -142,13 +156,29 @@ CMakeFiles/toychain_server.dir/src/server.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/toychain_server.dir/src/server.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S "/Users/max/Desktop/blockchain in c+/toychain/backend/src/server.cpp" -o CMakeFiles/toychain_server.dir/src/server.cpp.s
 
+CMakeFiles/toychain_server.dir/src/db/Database.cpp.o: CMakeFiles/toychain_server.dir/flags.make
+CMakeFiles/toychain_server.dir/src/db/Database.cpp.o: /Users/max/Desktop/blockchain\ in\ c+/toychain/backend/src/db/Database.cpp
+CMakeFiles/toychain_server.dir/src/db/Database.cpp.o: CMakeFiles/toychain_server.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/Users/max/Desktop/blockchain in c+/toychain/backend/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/toychain_server.dir/src/db/Database.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/toychain_server.dir/src/db/Database.cpp.o -MF CMakeFiles/toychain_server.dir/src/db/Database.cpp.o.d -o CMakeFiles/toychain_server.dir/src/db/Database.cpp.o -c "/Users/max/Desktop/blockchain in c+/toychain/backend/src/db/Database.cpp"
+
+CMakeFiles/toychain_server.dir/src/db/Database.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/toychain_server.dir/src/db/Database.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E "/Users/max/Desktop/blockchain in c+/toychain/backend/src/db/Database.cpp" > CMakeFiles/toychain_server.dir/src/db/Database.cpp.i
+
+CMakeFiles/toychain_server.dir/src/db/Database.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/toychain_server.dir/src/db/Database.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S "/Users/max/Desktop/blockchain in c+/toychain/backend/src/db/Database.cpp" -o CMakeFiles/toychain_server.dir/src/db/Database.cpp.s
+
 # Object files for target toychain_server
 toychain_server_OBJECTS = \
 "CMakeFiles/toychain_server.dir/src/main.cpp.o" \
 "CMakeFiles/toychain_server.dir/src/block.cpp.o" \
 "CMakeFiles/toychain_server.dir/src/transaction.cpp.o" \
 "CMakeFiles/toychain_server.dir/src/blockchain.cpp.o" \
-"CMakeFiles/toychain_server.dir/src/server.cpp.o"
+"CMakeFiles/toychain_server.dir/src/utxo.cpp.o" \
+"CMakeFiles/toychain_server.dir/src/server.cpp.o" \
+"CMakeFiles/toychain_server.dir/src/db/Database.cpp.o"
 
 # External object files for target toychain_server
 toychain_server_EXTERNAL_OBJECTS =
@@ -157,12 +187,15 @@ toychain_server: CMakeFiles/toychain_server.dir/src/main.cpp.o
 toychain_server: CMakeFiles/toychain_server.dir/src/block.cpp.o
 toychain_server: CMakeFiles/toychain_server.dir/src/transaction.cpp.o
 toychain_server: CMakeFiles/toychain_server.dir/src/blockchain.cpp.o
+toychain_server: CMakeFiles/toychain_server.dir/src/utxo.cpp.o
 toychain_server: CMakeFiles/toychain_server.dir/src/server.cpp.o
+toychain_server: CMakeFiles/toychain_server.dir/src/db/Database.cpp.o
 toychain_server: CMakeFiles/toychain_server.dir/build.make
 toychain_server: /opt/homebrew/lib/libssl.dylib
 toychain_server: /opt/homebrew/lib/libcrypto.dylib
+toychain_server: /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib/libsqlite3.tbd
 toychain_server: CMakeFiles/toychain_server.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir="/Users/max/Desktop/blockchain in c+/toychain/backend/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_6) "Linking CXX executable toychain_server"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir="/Users/max/Desktop/blockchain in c+/toychain/backend/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_8) "Linking CXX executable toychain_server"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/toychain_server.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

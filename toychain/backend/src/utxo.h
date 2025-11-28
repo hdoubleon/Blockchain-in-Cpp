@@ -20,6 +20,7 @@ struct TxOutput
     double amount;
     std::string address; // 수신자 주소
 
+    TxOutput() : amount(0.0) {}
     TxOutput(double amt, const std::string &addr)
         : amount(amt), address(addr) {}
 };
@@ -28,6 +29,7 @@ class UTXOTransaction
 {
 private:
     std::string id;
+    std::string entropy;
     std::vector<TxInput> inputs;
     std::vector<TxOutput> outputs;
 
@@ -40,6 +42,9 @@ public:
 
     std::string calculateHash() const;
     std::string toString() const;
+
+private:
+    std::string generateEntropy() const;
 };
 
 class UTXOSet
@@ -56,6 +61,7 @@ public:
 
     double getBalance(const std::string &address) const;
     std::vector<std::pair<std::string, TxOutput>> getUTXOsForAddress(const std::string &address) const;
+    std::unordered_map<std::string, TxOutput> getAllUTXOs() const;
 
 private:
     std::string makeKey(const std::string &txId, int index) const;

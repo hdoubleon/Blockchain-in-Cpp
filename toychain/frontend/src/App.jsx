@@ -5,204 +5,157 @@ import MiningAnimation from "./components/MiningAnimation";
 import EditBlockModal from "./components/EditBlockModal";
 import "./App.css";
 
-// 제네시스 블록 생성
-const createInitialChain = () => [
-  {
-    index: 0,
-    timestamp: "Genesis Block",
-    hash: "0",
-    previousHash: "0",
-    nonce: 0,
-    transactions: [{ sender: "network", recipient: "genesis", amount: 0 }],
-    isValid: true,
-  },
-];
+const API_BASE = "http://localhost:8080";
 
-// 아주 단순한 해시 함수 (데모용)
-const generateHash = (block) => {
-  const data = `${block.index}${block.timestamp}${block.previousHash}${
-    block.nonce
-  }${JSON.stringify(block.transactions)}`;
+const computeHash = (block) => {
+  const data = `${block.index}${block.timestamp}${block.previousHash}${block.nonce}${JSON.stringify(
+    block.transactions
+  )}`;
   let hash = 0;
   for (let i = 0; i < data.length; i++) {
     const char = data.charCodeAt(i);
     hash = (hash << 5) - hash + char;
-    hash = hash & hash;
+    hash |= 0; // 32-bit
   }
   return Math.abs(hash).toString(16).padStart(16, "0");
 };
 
 function App() {
-  // -------------------- state --------------------
-  const [blocks, setBlocks] = useState(createInitialChain); // 체인
-  const [pendingTransactions, setPendingTransactions] = useState([]); // 아직 포함 안 된 트랜잭션들
-  const [difficulty, setDifficulty] = useState(2); // 난이도 (데모용 고정)
-  const [balances, setBalances] = useState({}); // 주소별 잔액
-  const [isMining, setIsMining] = useState(false); // 마이닝 애니메이션 상태
-  const [editingBlock, setEditingBlock] = useState(null); // 수정 중인 블록 인덱스
+  const [blocks, setBlocks] = useState([]);
+  const [difficulty, setDifficulty] = useState(0);
+  const [balances, setBalances] = useState({});
+  const [pending, setPending] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [banner, setBanner] = useState(null); // { type: "success" | "error", text: string }
+  const [tamperMode, setTamperMode] = useState(false);
+  const [tamperedBlocks, setTamperedBlocks] = useState(null);
+  const [editingBlock, setEditingBlock] = useState(null);
 
-  // -------------------- 유효성 검증 --------------------
-  const getBlocksWithValidity = (blocks) => {
-    return blocks.map((block, i, arr) => {
-      if (i === 0) return { ...block, isValid: true };
-
-      const expectedHash = generateHash(block);
-      const isHashValid = block.hash === expectedHash;
-      const isChainValid = block.previousHash === arr[i - 1].hash;
-
-      return { ...block, isValid: isHashValid && isChainValid };
-    });
+  const fetchChain = async () => {
+    const res = await fetch(`${API_BASE}/blockchain`);
+    if (!res.ok) {
+      throw new Error("Failed to fetch blockchain");
+    }
+    return res.json();
   };
 
-  // -------------------- 잔액 계산 (UTXO스럽게) --------------------
+  const fetchBalances = async () => {
+    const res = await fetch(`${API_BASE}/balances`);
+    if (!res.ok) {
+      throw new Error("Failed to fetch balances");
+    }
+    return res.json();
+  };
+
+  const fetchPending = async () => {
+    const res = await fetch(`${API_BASE}/pending`);
+    if (!res.ok) {
+      throw new Error("Failed to fetch pending transactions");
+    }
+    return res.json();
+  };
+
+  const calculateValidity = (chain) => {
+    const result = [];
+    let broken = false;
+    for (let i = 0; i < chain.length; i++) {
+      const block = chain[i];
+      const prev = chain[i - 1];
+      const tampered = block.__tampered === true;
+      const linkOk = i === 0 || block.previousHash === prev.hash;
+      broken = broken || tampered || !linkOk;
+      const valid = !broken;
+      result.push({ ...block, isValid: valid });
+    }
+    return result;
+  };
+
+  const refresh = async () => {
+    try {
+      setLoading(true);
+      const [chainData, balanceData, pendingData] = await Promise.all([
+        fetchChain(),
+        fetchBalances(),
+        fetchPending(),
+      ]);
+      setBlocks(chainData.chain || []);
+      setDifficulty(chainData.difficulty || 0);
+      setBalances(balanceData || {});
+      setPending(pendingData || []);
+      setBanner(null);
+      setTamperedBlocks(null);
+      setTamperMode(false);
+    } catch (err) {
+      setBanner({ type: "error", text: err.message });
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const newBalances = {};
+    refresh();
+  }, []);
 
-    blocks.forEach((block) => {
-      block.transactions.forEach((tx) => {
-        const { sender, recipient, amount } = tx;
-
-        // 네트워크 리워드 같은 건 sender 차감 X
-        if (sender && sender !== "network") {
-          newBalances[sender] = (newBalances[sender] || 0) - amount;
-        }
-        if (recipient) {
-          newBalances[recipient] = (newBalances[recipient] || 0) + amount;
-        }
+  const handleAddTransaction = async (tx) => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE}/transaction`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(tx),
       });
-    });
-
-    setBalances(newBalances);
-  }, [blocks]);
-
-  // -------------------- 트랜잭션 추가 --------------------
-  const handleAddTransaction = (tx) => {
-    // tx: { sender, recipient, amount } 형태라고 가정
-    setPendingTransactions((prev) => [...prev, tx]);
-  };
-
-  // -------------------- 마이닝 --------------------
-  const handleMine = () => {
-    if (pendingTransactions.length === 0) {
-      alert("⛏ 추가할 트랜잭션이 없습니다.");
-      return;
-    }
-
-    setIsMining(true);
-
-    setTimeout(() => {
-      setBlocks((prevBlocks) => {
-        const lastBlock = prevBlocks[prevBlocks.length - 1];
-
-        // 코인베이스(채굴 보상) 트랜잭션 예시
-        const coinbaseTx = {
-          sender: "network",
-          recipient: "miner",
-          amount: 50,
-        };
-
-        const newBlock = {
-          index: prevBlocks.length,
-          timestamp: new Date().toLocaleString(),
-          previousHash: lastBlock.hash,
-          nonce: 0,
-          transactions: [coinbaseTx, ...pendingTransactions],
-          hash: "",
-          isValid: true,
-        };
-
-        // PoW: hash가 0이 difficulty개 연속될 때까지 nonce 증가
-        let nonce = 0;
-        let hash = "";
-        const targetPrefix = "0".repeat(difficulty);
-
-        while (true) {
-          const candidate = { ...newBlock, nonce };
-          const candidateHash = generateHash(candidate);
-          if (candidateHash.startsWith(targetPrefix)) {
-            hash = candidateHash;
-            newBlock.nonce = nonce;
-            newBlock.hash = hash;
-            break;
-          }
-          nonce++;
-        }
-
-        return [...prevBlocks, newBlock];
-      });
-
-      // 블록에 포함됐으니 pending 트랜잭션 비우기
-      setPendingTransactions([]);
-      setIsMining(false);
-    }, 500); // 살짝 딜레이 줘서 애니메이션 보여주기
-  };
-
-  // -------------------- 체인 검증 --------------------
-  const validateChain = () => {
-    const validated = getBlocksWithValidity(blocks);
-    const hasInvalid = validated.some((b) => !b.isValid);
-    if (hasInvalid) {
-      alert("❌ 체인에 유효하지 않은 블록이 있습니다!");
-    } else {
-      alert("✅ 체인이 유효합니다!");
+      const data = await res.json();
+      if (!res.ok || data.status !== "success") {
+        throw new Error(data.message || "Transaction failed");
+      }
+      setBanner({ type: "success", text: "✅ Transaction accepted" });
+      await refresh();
+    } catch (err) {
+      setBanner({ type: "error", text: err.message });
+    } finally {
+      setLoading(false);
     }
   };
 
-  // -------------------- 블록 변조 (EditBlockModal용) --------------------
-  const handleTamperBlock = (index, newTransactions) => {
-    setBlocks((prevBlocks) => {
-      const newBlocks = prevBlocks.map((b) => ({
-        ...b,
-        transactions: [...b.transactions],
-      }));
-
-      const target = newBlocks[index];
-      const tamperedBlock = {
-        ...target,
-        transactions: newTransactions,
-      };
-
-      // 변조 후 해시는 다시 계산 (재마이닝은 X)
-      tamperedBlock.hash = generateHash(tamperedBlock);
-      newBlocks[index] = tamperedBlock;
-
-      return newBlocks;
-    });
+  const handleMine = async (miner = "default_miner") => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE}/mine`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ miner }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.status !== "success") {
+        throw new Error(data.message || "Mining failed");
+      }
+      setBanner({ type: "success", text: "⛏️ Block mined!" });
+      await refresh();
+    } catch (err) {
+      setBanner({ type: "error", text: err.message });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // -------------------- JSX --------------------
   return (
     <div style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
       <h1>🔗 ToyChain Explorer</h1>
 
-      {/* 백엔드 안 띄운 경우 안내 (지금은 blocks만 기준으로 간단 체크) */}
-      {blocks.length === 0 && (
+      {banner && (
         <div
           style={{
-            backgroundColor: "#fef2f2",
-            border: "2px solid #ef4444",
+            backgroundColor: banner.type === "error" ? "#fef2f2" : "#ecfdf3",
+            border: banner.type === "error" ? "2px solid #ef4444" : "2px solid #34d399",
             borderRadius: "0.5rem",
-            padding: "1.5rem",
-            marginBottom: "2rem",
+            padding: "1rem",
+            marginBottom: "1.5rem",
+            color: banner.type === "error" ? "#b91c1c" : "#047857",
           }}
         >
-          <h3>⚠️ Backend Server Not Running</h3>
-          <p>Please start the backend server:</p>
-          <pre
-            style={{
-              backgroundColor: "#1f2937",
-              color: "#f3f4f6",
-              padding: "1rem",
-              borderRadius: "0.25rem",
-            }}
-          >
-            {`cd backend/build
-./toychain_server`}
-          </pre>
+          {banner.text}
         </div>
       )}
 
-      {/* Difficulty 정보 패널 */}
       <div
         style={{
           backgroundColor: "#f8fafc",
@@ -232,13 +185,9 @@ function App() {
           <div>
             <strong>Total Blocks:</strong> {blocks.length}
           </div>
-          <div>
-            <strong>Target Block Time:</strong> 10s
-          </div>
         </div>
       </div>
 
-      {/* UTXO 잔액 패널 */}
       <div
         style={{
           backgroundColor: "#f0fdf4",
@@ -267,9 +216,7 @@ function App() {
                   border: "1px solid #86efac",
                 }}
               >
-                <div
-                  style={{ fontWeight: "600", marginBottom: "0.5rem" }}
-                >
+                <div style={{ fontWeight: "600", marginBottom: "0.5rem" }}>
                   {address}
                 </div>
                 <div style={{ fontSize: "1.25rem", color: "#10b981" }}>
@@ -280,35 +227,52 @@ function App() {
           </div>
         ) : (
           <p style={{ margin: 0, color: "#6b7280" }}>
-            No balances yet. Add transactions to see UTXO balances.
+            No balances yet. Mine a block to create coinbase UTXOs.
           </p>
         )}
       </div>
 
-      {/* 컨트롤 영역 */}
       <div className="controls">
         <AddTransactionForm onAdd={handleAddTransaction} onMine={handleMine} />
-        <button className="validate-btn" onClick={validateChain}>
-          🔍 Validate Chain
+        <button className="validate-btn" onClick={refresh} disabled={loading}>
+          🔄 Refresh
+        </button>
+        <button
+          className="validate-btn"
+          onClick={() => {
+            setTamperMode((prev) => !prev);
+            setTamperedBlocks((prev) => (prev ? null : blocks.map((b) => ({ ...b }))));
+            setEditingBlock(null);
+          }}
+        >
+          {tamperMode ? "🔒 Exit Tamper Mode" : "💣 Tamper Mode"}
         </button>
       </div>
 
-      {isMining && <MiningAnimation />}
+      {loading && (
+        <p style={{ color: "#64748b" }}>⏳ Syncing with node...</p>
+      )}
 
-      {/* 블록체인 뷰 */}
+      {loading && <MiningAnimation />}
+
       <BlockchainView
-        blocks={getBlocksWithValidity(blocks)}
-        pendingTransactions={pendingTransactions}
-        onEditBlock={(index) => setEditingBlock(index)}
+        blocks={calculateValidity(tamperedBlocks || blocks)}
+        pendingTransactions={pending}
+        tamperMode={tamperMode}
+        onEditBlock={(idx) => setEditingBlock(idx)}
       />
 
-      {/* 블록 수정 모달 */}
-      {editingBlock !== null && (
+      {editingBlock !== null && tamperedBlocks && (
         <EditBlockModal
-          block={blocks[editingBlock]}
-          onSave={(newTransactions) =>
-            handleTamperBlock(editingBlock, newTransactions)
-          }
+          block={tamperedBlocks[editingBlock]}
+          onSave={(newBlock) => {
+            const tamperedHash = computeHash(newBlock);
+            const next = tamperedBlocks.map((b, i) =>
+              i === editingBlock ? { ...newBlock, __tampered: true, hash: tamperedHash } : b
+            );
+            setTamperedBlocks(next);
+            setEditingBlock(null);
+          }}
           onClose={() => setEditingBlock(null)}
         />
       )}

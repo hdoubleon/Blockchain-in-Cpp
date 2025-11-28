@@ -6,8 +6,9 @@
 #include <iostream>
 #include <sstream>
 #include <cstring>
+#include <string>
 
-void handleRequest(int client_socket, Blockchain &blockchain)
+void handleRequest(int client_socket, Blockchain &blockchain, const std::string &statePath)
 {
     if (client_socket < 0)
         return; // 방어 코드
@@ -46,11 +47,38 @@ void handleRequest(int client_socket, Blockchain &blockchain)
             const auto &txs = block.getTransactions();
             for (size_t j = 0; j < txs.size(); j++)
             {
+                const auto &tx = txs[j];
                 response_body += "{";
-                response_body += "\"sender\":\"" + txs[j].getSender() + "\",";
-                response_body += "\"recipient\":\"" + txs[j].getRecipient() + "\",";
-                response_body += "\"amount\":" + std::to_string(txs[j].getAmount());
-                response_body += "}";
+                response_body += "\"id\":\"" + tx.getId() + "\",";
+                response_body += "\"inputs\":[";
+                const auto &inputs = tx.getInputs();
+                for (size_t k = 0; k < inputs.size(); ++k)
+                {
+                    const auto &in = inputs[k];
+                    response_body += "{";
+                    response_body += "\"txId\":\"" + in.txId + "\",";
+                    response_body += "\"outputIndex\":" + std::to_string(in.outputIndex) + ",";
+                    response_body += "\"signature\":\"" + in.signature + "\"";
+                    response_body += "}";
+                    if (k < inputs.size() - 1)
+                        response_body += ",";
+                }
+                response_body += "],";
+
+                response_body += "\"outputs\":[";
+                const auto &outputs = tx.getOutputs();
+                for (size_t k = 0; k < outputs.size(); ++k)
+                {
+                    const auto &out = outputs[k];
+                    response_body += "{";
+                    response_body += "\"address\":\"" + out.address + "\",";
+                    response_body += "\"amount\":" + std::to_string(out.amount);
+                    response_body += "}";
+                    if (k < outputs.size() - 1)
+                        response_body += ",";
+                }
+                response_body += "]}";
+
                 if (j < txs.size() - 1)
                     response_body += ",";
             }
@@ -74,6 +102,48 @@ void handleRequest(int client_socket, Blockchain &blockchain)
         }
         response_body += "}";
     }
+    else if (path == "/pending")
+    {
+        const auto &pending = blockchain.getPendingTransactions();
+        response_body = "[";
+        for (size_t j = 0; j < pending.size(); ++j)
+        {
+            const auto &tx = pending[j];
+            response_body += "{";
+            response_body += "\"id\":\"" + tx.getId() + "\",";
+            response_body += "\"inputs\":[";
+            const auto &inputs = tx.getInputs();
+            for (size_t k = 0; k < inputs.size(); ++k)
+            {
+                const auto &in = inputs[k];
+                response_body += "{";
+                response_body += "\"txId\":\"" + in.txId + "\",";
+                response_body += "\"outputIndex\":" + std::to_string(in.outputIndex) + ",";
+                response_body += "\"signature\":\"" + in.signature + "\"";
+                response_body += "}";
+                if (k < inputs.size() - 1)
+                    response_body += ",";
+            }
+            response_body += "],";
+
+            response_body += "\"outputs\":[";
+            const auto &outputs = tx.getOutputs();
+            for (size_t k = 0; k < outputs.size(); ++k)
+            {
+                const auto &out = outputs[k];
+                response_body += "{";
+                response_body += "\"address\":\"" + out.address + "\",";
+                response_body += "\"amount\":" + std::to_string(out.amount);
+                response_body += "}";
+                if (k < outputs.size() - 1)
+                    response_body += ",";
+            }
+            response_body += "]}";
+            if (j < pending.size() - 1)
+                response_body += ",";
+        }
+        response_body += "]";
+    }
     else if (path == "/transaction" && method == "POST")
     {
         size_t body_start = request.find("\r\n\r\n");
@@ -93,8 +163,16 @@ void handleRequest(int client_socket, Blockchain &blockchain)
             size_t amount_end = body.find_first_of(",}", amount_pos);
             double amount = std::stod(body.substr(amount_pos, amount_end - amount_pos));
 
-            blockchain.addTransaction(Transaction(sender, recipient, amount));
-            response_body = "{\"status\":\"success\"}";
+            std::string error;
+            bool ok = blockchain.addTransaction(sender, recipient, amount, error);
+            if (ok)
+            {
+                response_body = "{\"status\":\"success\"}";
+            }
+            else
+            {
+                response_body = "{\"status\":\"error\",\"message\":\"" + error + "\"}";
+            }
         }
     }
     else if (path == "/mine" && method == "POST")
@@ -116,6 +194,7 @@ void handleRequest(int client_socket, Blockchain &blockchain)
 
         std::cout << "Mining started by: " << miner << "\n";
         blockchain.minePendingTransactions(miner);
+        blockchain.saveToFile(statePath);
         std::cout << "Mining completed!\n";
 
         response_body = "{\"status\":\"success\"}";
@@ -138,7 +217,7 @@ void handleRequest(int client_socket, Blockchain &blockchain)
     close(client_socket);
 }
 
-void runServer(Blockchain &blockchain)
+void runServer(Blockchain &blockchain, const std::string &statePath)
 {
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     int opt = 1;
@@ -170,6 +249,6 @@ void runServer(Blockchain &blockchain)
             std::cerr << "Accept failed\n";
             continue;
         }
-        handleRequest(client_socket, blockchain);
+        handleRequest(client_socket, blockchain, statePath);
     }
 }
