@@ -30,6 +30,10 @@ function App() {
   const [tamperMode, setTamperMode] = useState(false);
   const [tamperedBlocks, setTamperedBlocks] = useState(null);
   const [editingBlock, setEditingBlock] = useState(null);
+  const [desiredDifficulty, setDesiredDifficulty] = useState("");
+  const [miningAttempts, setMiningAttempts] = useState([]);
+  const [miningActive, setMiningActive] = useState(false);
+  const miningTimerRef = React.useRef(null);
 
   const fetchChain = async () => {
     const res = await fetch(`${API_BASE}/blockchain`);
@@ -71,15 +75,17 @@ function App() {
   };
 
   const refresh = async () => {
+    let chainData = null;
     try {
       setLoading(true);
-      const [chainData, balanceData, pendingData] = await Promise.all([
+      const [cData, balanceData, pendingData] = await Promise.all([
         fetchChain(),
         fetchBalances(),
         fetchPending(),
       ]);
-      setBlocks(chainData.chain || []);
-      setDifficulty(chainData.difficulty || 0);
+      chainData = cData;
+      setBlocks(cData.chain || []);
+      setDifficulty(cData.difficulty || 0);
       setBalances(balanceData || {});
       setPending(pendingData || []);
       setBanner(null);
@@ -89,6 +95,7 @@ function App() {
       setBanner({ type: "error", text: err.message });
     }
     setLoading(false);
+    return chainData;
   };
 
   useEffect(() => {
@@ -117,8 +124,25 @@ function App() {
   };
 
   const handleMine = async (miner = "default_miner") => {
+    if (miningTimerRef.current) {
+      clearInterval(miningTimerRef.current);
+    }
     try {
       setLoading(true);
+      setMiningActive(true);
+      setMiningAttempts([]);
+      // simulate hash attempts until response
+      const targetPrefix = "0".repeat(Math.max(1, difficulty || 1));
+      if (miningTimerRef.current) clearInterval(miningTimerRef.current);
+      miningTimerRef.current = setInterval(() => {
+        const rand = Math.random().toString(16).slice(2, 10);
+        const attempt = `${targetPrefix}${rand}`;
+        setMiningAttempts((prev) => {
+          const next = [...prev, { hash: attempt, success: false }];
+          return next.slice(-12); // keep last 12 for smooth UI
+        });
+      }, 150);
+
       const res = await fetch(`${API_BASE}/mine`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -129,6 +153,47 @@ function App() {
         throw new Error(data.message || "Mining failed");
       }
       setBanner({ type: "success", text: "⛏️ Block mined!" });
+      const chainData = await refresh();
+      const latestHash = chainData?.chain?.length ? chainData.chain[chainData.chain.length - 1].hash : "FOUND";
+      if (miningTimerRef.current) {
+        clearInterval(miningTimerRef.current);
+        miningTimerRef.current = null;
+      }
+      setMiningAttempts((prev) => [...prev.slice(-11), { hash: latestHash, success: true }]);
+      setTimeout(() => {
+        setMiningActive(false);
+        setMiningAttempts([]);
+      }, 1200);
+    } catch (err) {
+      setBanner({ type: "error", text: err.message });
+      if (miningTimerRef.current) {
+        clearInterval(miningTimerRef.current);
+        miningTimerRef.current = null;
+      }
+      setMiningActive(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSetDifficulty = async () => {
+    const value = parseInt(desiredDifficulty, 10);
+    if (Number.isNaN(value) || value < 1) {
+      setBanner({ type: "error", text: "난이도는 1 이상의 정수여야 합니다." });
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE}/difficulty`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ difficulty: value }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.status !== "success") {
+        throw new Error(data.message || "Difficulty update failed");
+      }
+      setBanner({ type: "success", text: `⚙️ 난이도 변경: ${value}` });
       await refresh();
     } catch (err) {
       setBanner({ type: "error", text: err.message });
@@ -185,6 +250,19 @@ function App() {
           <div>
             <strong>Total Blocks:</strong> {blocks.length}
           </div>
+        </div>
+        <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <input
+            type="number"
+            min="1"
+            placeholder="난이도 입력"
+            value={desiredDifficulty}
+            onChange={(e) => setDesiredDifficulty(e.target.value)}
+            style={{ padding: "0.5rem", borderRadius: "6px", border: "1px solid #cbd5e1", width: "140px" }}
+          />
+          <button className="validate-btn" onClick={handleSetDifficulty} disabled={loading}>
+            ⚙️ Set Difficulty
+          </button>
         </div>
       </div>
 
@@ -253,7 +331,9 @@ function App() {
         <p style={{ color: "#64748b" }}>⏳ Syncing with node...</p>
       )}
 
-      {loading && <MiningAnimation />}
+      {miningActive && (
+        <MiningAnimation attempts={miningAttempts} difficulty={difficulty} />
+      )}
 
       <BlockchainView
         blocks={calculateValidity(tamperedBlocks || blocks)}

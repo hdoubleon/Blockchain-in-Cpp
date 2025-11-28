@@ -88,6 +88,36 @@ void handleRequest(int client_socket, Blockchain &blockchain, const std::string 
         }
         response_body += "],\"difficulty\":" + std::to_string(blockchain.getDifficulty()) + "}";
     }
+    else if (path == "/difficulty")
+    {
+        if (method == "GET")
+        {
+            response_body = "{\"difficulty\":" + std::to_string(blockchain.getDifficulty()) + "}";
+        }
+        else if (method == "POST")
+        {
+            size_t body_start = request.find("\r\n\r\n");
+            if (body_start != std::string::npos)
+            {
+                std::string body = request.substr(body_start + 4);
+                size_t diff_pos = body.find("\"difficulty\":");
+                if (diff_pos != std::string::npos)
+                {
+                    diff_pos += 13;
+                    size_t diff_end = body.find_first_of(",}", diff_pos);
+                    int newDiff = std::stoi(body.substr(diff_pos, diff_end - diff_pos));
+                    if (newDiff < 1)
+                        newDiff = 1;
+                    blockchain.setDifficulty(newDiff);
+                    response_body = "{\"status\":\"success\",\"difficulty\":" + std::to_string(newDiff) + "}";
+                }
+                else
+                {
+                    response_body = "{\"status\":\"error\",\"message\":\"difficulty not provided\"}";
+                }
+            }
+        }
+    }
     else if (path == "/balances")
     {
         auto balances = blockchain.getBalances();
