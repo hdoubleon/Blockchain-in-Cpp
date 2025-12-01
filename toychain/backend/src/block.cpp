@@ -34,7 +34,7 @@ std::string Block::calculateHash() const
     return hashStr.str();
 }
 
-void Block::mineBlock(int diff)
+void Block::mineBlock(int diff, std::function<void(const std::string &, int)> onSample)
 {
     difficulty = diff;
     std::string target(diff, '0');
@@ -43,7 +43,15 @@ void Block::mineBlock(int diff)
     {
         nonce++;
         hash = calculateHash();
+
+        if (onSample && nonce % 5000 == 0)
+        {
+            onSample(hash, nonce);
+        }
     }
 
     std::cout << "Block mined: " << hash << std::endl;
+
+    if (onSample)
+        onSample(hash, nonce);
 }

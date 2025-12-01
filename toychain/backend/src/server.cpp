@@ -6,6 +6,39 @@
 #include <iostream>
 #include <sstream>
 #include <cstring>
+#include <thread>
+#include <mutex>
+#include <unordered_map>
+#include <memory>
+#include <random>
+#include <chrono>
+#include <functional>
+
+struct MiningJob
+{
+    std::string id;
+    bool done = false;
+    bool error = false;
+    std::string errMsg;
+    std::string hash;
+    int nonce = 0;
+    int difficulty = 0;
+    std::vector<std::string> attempts;
+    std::mutex mtx;
+};
+
+std::unordered_map<std::string, std::shared_ptr<MiningJob>> jobs;
+std::mutex jobsMutex;
+
+std::string makeJobId()
+{
+    auto now = std::chrono::steady_clock::now().time_since_epoch().count();
+    std::mt19937_64 gen(now);
+    std::uniform_int_distribution<uint64_t> dist;
+    std::stringstream ss;
+    ss << std::hex << now << dist(gen);
+    return ss.str();
+}
 #include <string>
 
 void handleRequest(int client_socket, Blockchain &blockchain, const std::string &statePath)
@@ -207,6 +240,47 @@ void handleRequest(int client_socket, Blockchain &blockchain, const std::string 
     }
     else if (path == "/mine" && method == "POST")
     {
+        // legacy synchronous mining kept for compatibility
+        std::string miner = "default_miner";
+        size_t body_start = request.find("\r\n\r\n");
+        if (body_start != std::string::npos)
+        {
+            std::string body = request.substr(body_start + 4);
+            size_t miner_pos = body.find("\"miner\":\"");
+            if (miner_pos != std::string::npos)
+            {
+                miner_pos += 9;
+                size_t miner_end = body.find("\"", miner_pos);
+                miner = body.substr(miner_pos, miner_end - miner_pos);
+            }
+        }
+
+        std::vector<std::string> attempts;
+        blockchain.minePendingTransactions(miner, [&](const std::string &h, int n) {
+            attempts.push_back(std::to_string(n) + ":" + h);
+            if (attempts.size() > 50)
+                attempts.erase(attempts.begin());
+        });
+        blockchain.saveToFile(statePath);
+
+        const Block &latest = blockchain.getLatestBlock();
+        response_body = "{";
+        response_body += "\"status\":\"success\",";
+        response_body += "\"hash\":\"" + latest.getHash() + "\",";
+        response_body += "\"nonce\":" + std::to_string(latest.getNonce()) + ",";
+        response_body += "\"difficulty\":" + std::to_string(latest.getDifficulty()) + ",";
+        response_body += "\"attempts\":[";
+        for (size_t i = 0; i < attempts.size(); ++i)
+        {
+            response_body += "\"" + attempts[i] + "\"";
+            if (i < attempts.size() - 1)
+                response_body += ",";
+        }
+        response_body += "]";
+        response_body += "}";
+    }
+    else if (path == "/mine/start" && method == "POST")
+    {
         size_t body_start = request.find("\r\n\r\n");
         std::string miner = "default_miner";
 
@@ -222,12 +296,103 @@ void handleRequest(int client_socket, Blockchain &blockchain, const std::string 
             }
         }
 
-        std::cout << "Mining started by: " << miner << "\n";
-        blockchain.minePendingTransactions(miner);
-        blockchain.saveToFile(statePath);
-        std::cout << "Mining completed!\n";
+        auto job = std::make_shared<MiningJob>();
+        job->id = makeJobId();
+        job->difficulty = blockchain.getDifficulty();
 
-        response_body = "{\"status\":\"success\"}";
+        {
+            std::lock_guard<std::mutex> lock(jobsMutex);
+            jobs[job->id] = job;
+        }
+
+        std::thread([job, miner, statePath, &blockchain]() {
+            try
+            {
+                blockchain.minePendingTransactions(miner, [job](const std::string &h, int n) {
+                    std::lock_guard<std::mutex> lk(job->mtx);
+                    job->attempts.push_back(std::to_string(n) + ":" + h);
+                    if (job->attempts.size() > 100)
+                        job->attempts.erase(job->attempts.begin());
+                });
+                blockchain.saveToFile(statePath);
+
+                const Block &latest = blockchain.getLatestBlock();
+                std::lock_guard<std::mutex> lk(job->mtx);
+                job->done = true;
+                job->hash = latest.getHash();
+                job->nonce = latest.getNonce();
+                job->difficulty = latest.getDifficulty();
+            }
+            catch (const std::exception &e)
+            {
+                std::lock_guard<std::mutex> lk(job->mtx);
+                job->error = true;
+                job->errMsg = e.what();
+            }
+        }).detach();
+
+        response_body = "{\"status\":\"started\",\"jobId\":\"" + job->id + "\"}";
+    }
+    else if (path.rfind("/mine/status", 0) == 0 && method == "GET")
+    {
+        size_t q = path.find("id=");
+        if (q == std::string::npos)
+        {
+            response_body = "{\"status\":\"error\",\"message\":\"job id missing\"}";
+        }
+        else
+        {
+            std::string jobId = path.substr(q + 3);
+            std::shared_ptr<MiningJob> job;
+            {
+                std::lock_guard<std::mutex> lock(jobsMutex);
+                auto it = jobs.find(jobId);
+                if (it != jobs.end())
+                    job = it->second;
+            }
+
+            if (!job)
+            {
+                response_body = "{\"status\":\"error\",\"message\":\"job not found\"}";
+            }
+            else
+            {
+                std::lock_guard<std::mutex> lk(job->mtx);
+                response_body = "{";
+                if (job->error)
+                {
+                    response_body += "\"status\":\"error\",\"message\":\"" + job->errMsg + "\"";
+                }
+                else if (job->done)
+                {
+                    response_body += "\"status\":\"done\",";
+                    response_body += "\"hash\":\"" + job->hash + "\",";
+                    response_body += "\"nonce\":" + std::to_string(job->nonce) + ",";
+                    response_body += "\"difficulty\":" + std::to_string(job->difficulty) + ",";
+                    response_body += "\"attempts\":[";
+                    for (size_t i = 0; i < job->attempts.size(); ++i)
+                    {
+                        response_body += "\"" + job->attempts[i] + "\"";
+                        if (i < job->attempts.size() - 1)
+                            response_body += ",";
+                    }
+                    response_body += "]";
+                }
+                else
+                {
+                    response_body += "\"status\":\"running\",";
+                    response_body += "\"attempts\":[";
+                    for (size_t i = 0; i < job->attempts.size(); ++i)
+                    {
+                        response_body += "\"" + job->attempts[i] + "\"";
+                        if (i < job->attempts.size() - 1)
+                            response_body += ",";
+                    }
+                    response_body += "]";
+                }
+                response_body += "}";
+            }
+        }
     }
     else
     {

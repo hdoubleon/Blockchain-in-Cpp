@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <ctime>
+#include <functional>
 
 class Block
 {
@@ -23,7 +24,7 @@ public:
     void setHash(const std::string &newHash) { hash = newHash; }
     void setNonce(int n) { nonce = n; }
     void setDifficulty(int diff) { difficulty = diff; }
-    void mineBlock(int difficulty);
+    void mineBlock(int difficulty, std::function<void(const std::string &, int)> onSample = nullptr);
     std::string calculateHash() const;
 
     int getIndex() const { return index; }
@@ -33,6 +34,7 @@ public:
     std::string getHash() const { return hash; }
     int getNonce() const { return nonce; }
     int getDifficulty() const { return difficulty; }
+
 };
 
 #endif

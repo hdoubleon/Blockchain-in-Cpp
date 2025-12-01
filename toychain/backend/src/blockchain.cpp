@@ -118,7 +118,7 @@ void Blockchain::applyTransactionToUTXOSet(const UTXOTransaction &tx)
     }
 }
 
-void Blockchain::minePendingTransactions(const std::string &minerAddress)
+void Blockchain::minePendingTransactions(const std::string &minerAddress, std::function<void(const std::string &, int)> onSample)
 {
     // 난이도 자동 조정
     if (chain.size() % difficultyAdjustmentInterval == 0 && chain.size() > 0)
@@ -136,7 +136,7 @@ void Blockchain::minePendingTransactions(const std::string &minerAddress)
     transactions.insert(transactions.end(), pendingTransactions.begin(), pendingTransactions.end());
 
     Block block(chain.size(), transactions, getLatestBlock().getHash());
-    block.mineBlock(difficulty);
+    block.mineBlock(difficulty, onSample);
 
     // 블록 확정 후 UTXO 반영
     for (const auto &tx : transactions)

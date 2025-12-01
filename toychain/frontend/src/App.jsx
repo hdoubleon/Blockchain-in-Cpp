@@ -33,7 +33,9 @@ function App() {
   const [desiredDifficulty, setDesiredDifficulty] = useState("");
   const [miningAttempts, setMiningAttempts] = useState([]);
   const [miningActive, setMiningActive] = useState(false);
-  const miningTimerRef = React.useRef(null);
+  const miningJobRef = React.useRef(null);
+  const miningPollRef = React.useRef(null);
+  const [finalHash, setFinalHash] = useState("");
 
   const fetchChain = async () => {
     const res = await fetch(`${API_BASE}/blockchain`);
@@ -124,55 +126,63 @@ function App() {
   };
 
   const handleMine = async (miner = "default_miner") => {
-    if (miningTimerRef.current) {
-      clearInterval(miningTimerRef.current);
-    }
+    // start async mining job
     try {
-      setLoading(true);
       setMiningActive(true);
       setMiningAttempts([]);
-      // simulate hash attempts until response
-      const targetPrefix = "0".repeat(Math.max(1, difficulty || 1));
-      if (miningTimerRef.current) clearInterval(miningTimerRef.current);
-      miningTimerRef.current = setInterval(() => {
-        const rand = Math.random().toString(16).slice(2, 10);
-        const attempt = `${targetPrefix}${rand}`;
-        setMiningAttempts((prev) => {
-          const next = [...prev, { hash: attempt, success: false }];
-          return next.slice(-12); // keep last 12 for smooth UI
-        });
-      }, 150);
-
-      const res = await fetch(`${API_BASE}/mine`, {
+      const res = await fetch(`${API_BASE}/mine/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ miner }),
       });
       const data = await res.json();
-      if (!res.ok || data.status !== "success") {
-        throw new Error(data.message || "Mining failed");
+      if (!res.ok || data.status !== "started") {
+        throw new Error(data.message || "Mining start failed");
       }
-      setBanner({ type: "success", text: "⛏️ Block mined!" });
-      const chainData = await refresh();
-      const latestHash = chainData?.chain?.length ? chainData.chain[chainData.chain.length - 1].hash : "FOUND";
-      if (miningTimerRef.current) {
-        clearInterval(miningTimerRef.current);
-        miningTimerRef.current = null;
-      }
-      setMiningAttempts((prev) => [...prev.slice(-11), { hash: latestHash, success: true }]);
-      setTimeout(() => {
-        setMiningActive(false);
-        setMiningAttempts([]);
-      }, 1200);
+      miningJobRef.current = data.jobId;
+      // poll status
+      if (miningPollRef.current) clearInterval(miningPollRef.current);
+      miningPollRef.current = setInterval(async () => {
+        try {
+          const res = await fetch(`${API_BASE}/mine/status?id=${data.jobId}`);
+          const status = await res.json();
+          if (status.status === "error") {
+            throw new Error(status.message || "Mining failed");
+          }
+          if (Array.isArray(status.attempts)) {
+            setMiningAttempts(
+              status.attempts.map((h, idx) => ({
+                hash: h.includes(":") ? h.split(":")[1] : h,
+                nonce: h.includes(":") ? h.split(":")[0] : "",
+                success: status.status === "done" && idx === status.attempts.length - 1,
+              }))
+            );
+          }
+          if (status.status === "done") {
+            setBanner({
+              type: "success",
+              text: `⛏️ Block mined! Hash ${status.hash?.slice(0, 12) || ""}...`,
+            });
+            await refresh();
+            clearInterval(miningPollRef.current);
+            miningPollRef.current = null;
+            setFinalHash(status.hash || "");
+            setTimeout(() => {
+              setMiningActive(false);
+              setMiningAttempts([]);
+              setFinalHash("");
+            }, 3000);
+          }
+        } catch (err) {
+          setBanner({ type: "error", text: err.message });
+          setMiningActive(false);
+          if (miningPollRef.current) clearInterval(miningPollRef.current);
+          miningPollRef.current = null;
+        }
+      }, 400);
     } catch (err) {
       setBanner({ type: "error", text: err.message });
-      if (miningTimerRef.current) {
-        clearInterval(miningTimerRef.current);
-        miningTimerRef.current = null;
-      }
       setMiningActive(false);
-    } finally {
-      setLoading(false);
     }
   };
 

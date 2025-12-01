@@ -26,7 +26,7 @@ public:
 
     Block createGenesisBlock();
     Block getLatestBlock() const;
-    void minePendingTransactions(const std::string &miningRewardAddress);
+    void minePendingTransactions(const std::string &miningRewardAddress, std::function<void(const std::string &, int)> onSample = nullptr);
     bool addTransaction(const std::string &from, const std::string &to, double amount, std::string &error);
 
     bool isChainValid() const;

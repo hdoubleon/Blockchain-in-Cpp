@@ -51,6 +51,23 @@
   margin-bottom: 1rem;
 }
 
+.found-banner {
+  background: #ecfdf3;
+  color: #065f46;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.4);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .scroll-attempts {
   max-height: 220px;
   overflow: hidden;
