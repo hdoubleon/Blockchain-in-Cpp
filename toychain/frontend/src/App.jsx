@@ -3,6 +3,7 @@ import BlockchainView from "./components/BlockchainView";
 import AddTransactionForm from "./components/AddTransactionForm";
 import MiningAnimation from "./components/MiningAnimation";
 import EditBlockModal from "./components/EditBlockModal";
+import UTXOList from "./components/UTXOList";
 import "./App.css";
 
 const API_BASE = "http://localhost:8080";
@@ -25,6 +26,7 @@ function App() {
   const [difficulty, setDifficulty] = useState(0);
   const [balances, setBalances] = useState({});
   const [pending, setPending] = useState([]);
+  const [utxos, setUtxos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [banner, setBanner] = useState(null); // { type: "success" | "error", text: string }
   const [tamperMode, setTamperMode] = useState(false);
@@ -34,7 +36,7 @@ function App() {
   const [miningAttempts, setMiningAttempts] = useState([]);
   const [miningActive, setMiningActive] = useState(false);
   const miningJobRef = React.useRef(null);
-  const miningPollRef = React.useRef(null);
+  const miningStreamRef = React.useRef(null);
   const [finalHash, setFinalHash] = useState("");
 
   const fetchChain = async () => {
@@ -61,6 +63,14 @@ function App() {
     return res.json();
   };
 
+  const fetchUTXOs = async () => {
+    const res = await fetch(`${API_BASE}/utxos`);
+    if (!res.ok) {
+      throw new Error("Failed to fetch UTXO set");
+    }
+    return res.json();
+  };
+
   const calculateValidity = (chain) => {
     const result = [];
     let broken = false;
@@ -80,16 +90,18 @@ function App() {
     let chainData = null;
     try {
       setLoading(true);
-      const [cData, balanceData, pendingData] = await Promise.all([
+      const [cData, balanceData, pendingData, utxoData] = await Promise.all([
         fetchChain(),
         fetchBalances(),
         fetchPending(),
+        fetchUTXOs(),
       ]);
       chainData = cData;
       setBlocks(cData.chain || []);
       setDifficulty(cData.difficulty || 0);
       setBalances(balanceData || {});
       setPending(pendingData || []);
+      setUtxos(utxoData || []);
       setBanner(null);
       setTamperedBlocks(null);
       setTamperMode(false);
@@ -102,6 +114,15 @@ function App() {
 
   useEffect(() => {
     refresh();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (miningStreamRef.current) {
+        miningStreamRef.current.close();
+        miningStreamRef.current = null;
+      }
+    };
   }, []);
 
   const handleAddTransaction = async (tx) => {
@@ -125,11 +146,29 @@ function App() {
     }
   };
 
+  const stopMiningStream = ({ clearAttempts = true, deactivate = true } = {}) => {
+    if (miningStreamRef.current) {
+      miningStreamRef.current.close();
+      miningStreamRef.current = null;
+    }
+    if (clearAttempts) {
+      setMiningAttempts([]);
+    }
+    miningJobRef.current = null;
+    if (deactivate) {
+      setMiningActive(false);
+    }
+  };
+
   const handleMine = async (miner = "default_miner") => {
-    // start async mining job
     try {
       setMiningActive(true);
       setMiningAttempts([]);
+      setBanner(null);
+      if (miningStreamRef.current) {
+        miningStreamRef.current.close();
+        miningStreamRef.current = null;
+      }
       const res = await fetch(`${API_BASE}/mine/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -140,15 +179,13 @@ function App() {
         throw new Error(data.message || "Mining start failed");
       }
       miningJobRef.current = data.jobId;
-      // poll status
-      if (miningPollRef.current) clearInterval(miningPollRef.current);
-      miningPollRef.current = setInterval(async () => {
+
+      const stream = new EventSource(`${API_BASE}/mine/stream?id=${data.jobId}`);
+      miningStreamRef.current = stream;
+
+      stream.onmessage = async (evt) => {
         try {
-          const res = await fetch(`${API_BASE}/mine/status?id=${data.jobId}`);
-          const status = await res.json();
-          if (status.status === "error") {
-            throw new Error(status.message || "Mining failed");
-          }
+          const status = JSON.parse(evt.data);
           if (Array.isArray(status.attempts)) {
             setMiningAttempts(
               status.attempts.map((h, idx) => ({
@@ -159,27 +196,35 @@ function App() {
             );
           }
           if (status.status === "done") {
+            if (miningStreamRef.current) {
+              miningStreamRef.current.onerror = null; // avoid error firing after close
+            }
             setBanner({
               type: "success",
               text: `⛏️ Block mined! Hash ${status.hash?.slice(0, 12) || ""}...`,
             });
             await refresh();
-            clearInterval(miningPollRef.current);
-            miningPollRef.current = null;
             setFinalHash(status.hash || "");
+            stopMiningStream({ clearAttempts: false, deactivate: false });
             setTimeout(() => {
               setMiningActive(false);
               setMiningAttempts([]);
               setFinalHash("");
             }, 3000);
+          } else if (status.status === "error") {
+            throw new Error(status.message || "Mining failed");
           }
         } catch (err) {
           setBanner({ type: "error", text: err.message });
-          setMiningActive(false);
-          if (miningPollRef.current) clearInterval(miningPollRef.current);
-          miningPollRef.current = null;
+          stopMiningStream({ clearAttempts: false });
         }
-      }, 400);
+      };
+
+      stream.onerror = () => {
+        if (stream.readyState === EventSource.CLOSED) return;
+        setBanner({ type: "error", text: "Mining stream disconnected" });
+        stopMiningStream({ clearAttempts: false });
+      };
     } catch (err) {
       setBanner({ type: "error", text: err.message });
       setMiningActive(false);
@@ -320,6 +365,19 @@ function App() {
         )}
       </div>
 
+      <div
+        style={{
+          backgroundColor: "#f8fafc",
+          border: "2px solid #cbd5e1",
+          borderRadius: "0.5rem",
+          padding: "1.5rem",
+          marginBottom: "2rem",
+        }}
+      >
+        <h3 style={{ margin: "0 0 1rem 0" }}>🧾 UTXO Set</h3>
+        <UTXOList utxos={utxos} />
+      </div>
+
       <div className="controls">
         <AddTransactionForm onAdd={handleAddTransaction} onMine={handleMine} />
         <button className="validate-btn" onClick={refresh} disabled={loading}>
@@ -342,7 +400,7 @@ function App() {
       )}
 
       {miningActive && (
-        <MiningAnimation attempts={miningAttempts} difficulty={difficulty} />
+        <MiningAnimation attempts={miningAttempts} difficulty={difficulty} finalHash={finalHash} />
       )}
 
       <BlockchainView

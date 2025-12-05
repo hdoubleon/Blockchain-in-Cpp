@@ -1,27 +1,31 @@
-#pragma once
+#ifndef DATABASE_HPP
+#define DATABASE_HPP
 
-#include <string>
-#include <vector>
 #include <sqlite3.h>
-
-class Block;
-class UTXOTransaction;
+#include <string>
+#include "../block.h"
+#include "../utxo.h"
+#include <vector>
+#include <filesystem>
 
 class Database
 {
+private:
+    sqlite3 *db;
+    bool opened = false;
+
 public:
-    explicit Database(const std::string &filename);
+    Database(const std::string &filename);
     ~Database();
 
     bool isOpen() const { return opened; }
 
+    bool exec(const std::string &sql);
     void createTables();
+
+    // WRITE FUNCTIONS
     bool insertBlock(const Block &block, const std::vector<UTXOTransaction> &txs);
     bool upsertMempool(const std::vector<UTXOTransaction> &pending);
-
-private:
-    sqlite3 *db = nullptr;
-    bool opened = false;
-
-    bool exec(const std::string &sql);
 };
+
+#endif

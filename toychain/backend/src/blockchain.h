@@ -6,6 +6,7 @@
 #include "db/Database.hpp"
 #include <vector>
 #include <unordered_map>
+#include <tuple>
 
 class Blockchain
 {
@@ -43,6 +44,7 @@ public:
 
     std::unordered_map<std::string, double> getBalances() const;
     const std::vector<UTXOTransaction> &getPendingTransactions() const { return pendingTransactions; }
+    std::vector<std::tuple<std::string, int, TxOutput>> getUTXOs() const;
 
     bool saveToFile(const std::string &path) const;
     bool loadFromFile(const std::string &path);

@@ -221,6 +221,22 @@ std::unordered_map<std::string, double> Blockchain::getBalances() const
     return balances;
 }
 
+std::vector<std::tuple<std::string, int, TxOutput>> Blockchain::getUTXOs() const
+{
+    std::vector<std::tuple<std::string, int, TxOutput>> list;
+    auto all = utxoSet.getAllUTXOs();
+    for (const auto &[key, output] : all)
+    {
+        auto pos = key.find(':');
+        if (pos == std::string::npos)
+            continue;
+        std::string txId = key.substr(0, pos);
+        int outIdx = std::stoi(key.substr(pos + 1));
+        list.emplace_back(txId, outIdx, output);
+    }
+    return list;
+}
+
 bool Blockchain::saveToFile(const std::string &path) const
 {
     std::ofstream out(path);

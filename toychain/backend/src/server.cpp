@@ -13,6 +13,7 @@
 #include <random>
 #include <chrono>
 #include <functional>
+#include <tuple>
 
 struct MiningJob
 {
@@ -60,6 +61,108 @@ void handleRequest(int client_socket, Blockchain &blockchain, const std::string 
 
     std::string response_body;
     std::string content_type = "application/json";
+
+    // SSE stream for mining progress
+    if (path.rfind("/mine/stream", 0) == 0 && method == "GET")
+    {
+        size_t q = path.find("id=");
+        if (q == std::string::npos)
+        {
+            response_body = "{\"status\":\"error\",\"message\":\"job id missing\"}";
+        }
+        else
+        {
+            std::string jobId = path.substr(q + 3);
+            std::shared_ptr<MiningJob> job;
+            {
+                std::lock_guard<std::mutex> lock(jobsMutex);
+                auto it = jobs.find(jobId);
+                if (it != jobs.end())
+                    job = it->second;
+            }
+
+            if (!job)
+            {
+                response_body = "{\"status\":\"error\",\"message\":\"job not found\"}";
+            }
+            else
+            {
+                std::string headers = "HTTP/1.1 200 OK\r\n";
+                headers += "Content-Type: text/event-stream\r\n";
+                headers += "Cache-Control: no-cache\r\n";
+                headers += "Connection: keep-alive\r\n";
+                headers += "Access-Control-Allow-Origin: *\r\n";
+                headers += "Access-Control-Allow-Headers: Content-Type\r\n";
+                headers += "\r\n";
+                send(client_socket, headers.c_str(), headers.length(), 0);
+
+                size_t lastAttempt = 0;
+                while (true)
+                {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+
+                    std::vector<std::string> attempts;
+                    bool done = false;
+                    bool error = false;
+                    std::string errMsg;
+                    std::string hash;
+                    int nonce = 0;
+                    int difficulty = 0;
+
+                    {
+                        std::lock_guard<std::mutex> lk(job->mtx);
+                        attempts = job->attempts;
+                        done = job->done;
+                        error = job->error;
+                        errMsg = job->errMsg;
+                        hash = job->hash;
+                        nonce = job->nonce;
+                        difficulty = job->difficulty;
+                    }
+
+                    if (attempts.size() == lastAttempt && !done && !error)
+                        continue;
+
+                    std::stringstream payload;
+                    if (error)
+                    {
+                        payload << "{\"status\":\"error\",\"message\":\"" << errMsg << "\"}";
+                    }
+                    else
+                    {
+                        payload << "{\"status\":\"" << (done ? "done" : "running") << "\",";
+                        if (done)
+                        {
+                            payload << "\"hash\":\"" << hash << "\",";
+                            payload << "\"nonce\":" << nonce << ",";
+                            payload << "\"difficulty\":" << difficulty << ",";
+                        }
+                        payload << "\"attempts\":[";
+                        for (size_t i = 0; i < attempts.size(); ++i)
+                        {
+                            payload << "\"" << attempts[i] << "\"";
+                            if (i < attempts.size() - 1)
+                                payload << ",";
+                        }
+                        payload << "]}";
+                    }
+
+                    std::string event = "data: " + payload.str() + "\n\n";
+                    if (send(client_socket, event.c_str(), event.length(), 0) <= 0)
+                    {
+                        break;
+                    }
+
+                    lastAttempt = attempts.size();
+                    if (done || error)
+                        break;
+                }
+
+                close(client_socket);
+                return;
+            }
+        }
+    }
 
     if (path == "/blockchain")
     {
@@ -164,6 +267,24 @@ void handleRequest(int client_socket, Blockchain &blockchain, const std::string 
             first = false;
         }
         response_body += "}";
+    }
+    else if (path == "/utxos")
+    {
+        auto utxos = blockchain.getUTXOs();
+        response_body = "[";
+        for (size_t i = 0; i < utxos.size(); ++i)
+        {
+            const auto &[txId, index, output] = utxos[i];
+            response_body += "{";
+            response_body += "\"txId\":\"" + txId + "\",";
+            response_body += "\"index\":" + std::to_string(index) + ",";
+            response_body += "\"address\":\"" + output.address + "\",";
+            response_body += "\"amount\":" + std::to_string(output.amount);
+            response_body += "}";
+            if (i < utxos.size() - 1)
+                response_body += ",";
+        }
+        response_body += "]";
     }
     else if (path == "/pending")
     {
@@ -444,6 +565,8 @@ void runServer(Blockchain &blockchain, const std::string &statePath)
             std::cerr << "Accept failed\n";
             continue;
         }
-        handleRequest(client_socket, blockchain, statePath);
+        std::thread([client_socket, &blockchain, statePath]() {
+            handleRequest(client_socket, blockchain, statePath);
+        }).detach();
     }
 }
