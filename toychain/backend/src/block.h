@@ -20,6 +20,7 @@ private:
 
 public:
     Block(int idx, const std::vector<UTXOTransaction> &txs, const std::string &prevHash);
+    Block(int idx, long long ts, const std::vector<UTXOTransaction> &txs, const std::string &prevHash, int nonceVal, int diffVal);
     void setTimestamp(long long time) { timestamp = time; }
     void setHash(const std::string &newHash) { hash = newHash; }
     void setNonce(int n) { nonce = n; }

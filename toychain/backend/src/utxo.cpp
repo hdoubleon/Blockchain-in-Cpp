@@ -2,29 +2,32 @@
 #include <sstream>
 #include <iomanip>
 #include <openssl/sha.h>
-#include <chrono>
 
 UTXOTransaction::UTXOTransaction(const std::vector<TxInput> &ins, const std::vector<TxOutput> &outs)
-    : entropy(generateEntropy()), inputs(ins), outputs(outs)
+    : inputs(ins), outputs(outs)
 {
     id = calculateHash();
 }
 
+UTXOTransaction::UTXOTransaction(const std::string &forcedId,
+                                 const std::vector<TxInput> &ins,
+                                 const std::vector<TxOutput> &outs)
+    : id(forcedId), inputs(ins), outputs(outs)
+{
+}
 std::string UTXOTransaction::calculateHash() const
 {
     std::stringstream ss;
 
     for (const auto &input : inputs)
     {
-        ss << input.txId << input.outputIndex << input.signature;
+        ss << input.txId << ":" << input.outputIndex << ":" << input.signature;
     }
-
+    ss << "|";
     for (const auto &output : outputs)
     {
-        ss << output.address << output.amount;
+        ss << output.amount << ":" << output.address;
     }
-
-    ss << entropy; // ensure coinbase tx ids differ per block
 
     std::string data = ss.str();
     unsigned char hash[SHA256_DIGEST_LENGTH];
@@ -37,12 +40,6 @@ std::string UTXOTransaction::calculateHash() const
     }
 
     return hashStr.str();
-}
-
-std::string UTXOTransaction::generateEntropy() const
-{
-    auto now = std::chrono::steady_clock::now().time_since_epoch().count();
-    return std::to_string(now);
 }
 
 std::string UTXOTransaction::toString() const

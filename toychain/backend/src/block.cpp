@@ -10,6 +10,16 @@ Block::Block(int idx, const std::vector<UTXOTransaction> &txs, const std::string
     timestamp = std::time(nullptr);
     hash = calculateHash();
 }
+Block::Block(int idx,
+             long long ts,
+             const std::vector<UTXOTransaction> &txs,
+             const std::string &prevHash,
+             int nonceVal,
+             int diffVal)
+    : index(idx), timestamp(ts), transactions(txs), previousHash(prevHash), nonce(nonceVal), difficulty(diffVal)
+{
+    hash = calculateHash(); // 외부에서 받은 hash와 비교할 때 사용할 예정
+}
 
 std::string Block::calculateHash() const
 {

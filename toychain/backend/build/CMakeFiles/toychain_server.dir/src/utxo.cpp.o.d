@@ -800,7 +800,4 @@ CMakeFiles/toychain_server.dir/src/utxo.cpp.o: \
   /opt/homebrew/include/openssl/opensslconf.h \
   /opt/homebrew/include/openssl/configuration.h \
   /opt/homebrew/include/openssl/opensslv.h \
-  /opt/homebrew/include/openssl/e_os2.h \
-  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/chrono \
-  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__chrono/file_clock.h \
-  /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/forward_list
+  /opt/homebrew/include/openssl/e_os2.h

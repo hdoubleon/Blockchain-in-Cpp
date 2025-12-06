@@ -48,6 +48,8 @@ public:
 
     bool saveToFile(const std::string &path) const;
     bool loadFromFile(const std::string &path);
+    bool acceptExternalBlock(const Block &block);
+    void addExternalPending(const UTXOTransaction &tx);
 
 private:
     bool isUTXOInPending(const std::string &txId, int index) const;

@@ -29,6 +29,8 @@ Block Blockchain::getLatestBlock() const
 
 bool Blockchain::isUTXOInPending(const std::string &txId, int index) const
 {
+    if (index < 0)
+        return false;
     for (const auto &tx : pendingTransactions)
     {
         for (const auto &input : tx.getInputs())
@@ -107,6 +109,10 @@ void Blockchain::applyTransactionToUTXOSet(const UTXOTransaction &tx)
     // Spend inputs
     for (const auto &input : tx.getInputs())
     {
+        if (input.outputIndex < 0)
+        {
+            continue; // coinbase dummy input
+        }
         utxoSet.removeUTXO(input.txId, input.outputIndex);
     }
 
@@ -126,8 +132,9 @@ void Blockchain::minePendingTransactions(const std::string &minerAddress, std::f
         adjustDifficulty();
     }
 
-    // 채굴 보상 트랜잭션 (입력 없음, 보상 출력만)
+    // 채굴 보상 트랜잭션 (입력 없음, 보상 출력만) - dummy input으로 고유 txid 확보
     std::vector<TxInput> coinbaseInputs;
+    coinbaseInputs.emplace_back(getLatestBlock().getHash(), -1, minerAddress); // unique dummy input
     std::vector<TxOutput> coinbaseOutputs = {TxOutput(miningReward, minerAddress)};
     UTXOTransaction coinbaseTx(coinbaseInputs, coinbaseOutputs);
 
@@ -274,6 +281,15 @@ bool Blockchain::saveToFile(const std::string &path) const
     return true;
 }
 
+void Blockchain::addExternalPending(const UTXOTransaction &tx)
+{
+    pendingTransactions.push_back(tx);
+    if (database)
+    {
+        database->upsertMempool(pendingTransactions);
+    }
+}
+
 bool Blockchain::loadFromFile(const std::string &path)
 {
     std::ifstream in(path);
@@ -402,5 +418,86 @@ bool Blockchain::loadFromFile(const std::string &path)
         }
     }
     difficulty = loadedDifficulty;
+    return true;
+}
+
+bool Blockchain::acceptExternalBlock(const Block &block)
+{
+    // 1) 이전 해시/높이 검증
+    const Block &latest = getLatestBlock();
+    if (block.getPreviousHash() != latest.getHash())
+    {
+        std::cerr << "❌ external block prev_hash mismatch\n";
+        return false;
+    }
+    if (block.getIndex() != latest.getIndex() + 1)
+    {
+        std::cerr << "❌ external block height mismatch\n";
+        return false;
+    }
+
+    // 3) UTXO 시뮬레이션 (롤백 대비)
+    UTXOSet utxoCopy = utxoSet; // 얕은 복사로 unordered_map 전체 복제됨
+    auto applyOn = [&](UTXOSet &target, const UTXOTransaction &tx)
+    {
+        // inputs spend
+        for (const auto &in : tx.getInputs())
+        {
+            if (in.outputIndex < 0)
+            {
+                continue; // dummy input (e.g., coinbase) — skip spending
+            }
+            if (!target.removeUTXO(in.txId, in.outputIndex))
+            {
+                return false; // 참조 UTXO 없음 → 불가
+            }
+        }
+        // outputs add
+        const auto &outs = tx.getOutputs();
+        for (size_t i = 0; i < outs.size(); ++i)
+        {
+            target.addUTXO(tx.getId(), static_cast<int>(i), outs[i]);
+        }
+        return true;
+    };
+
+    for (const auto &tx : block.getTransactions())
+    {
+        if (!applyOn(utxoCopy, tx))
+        {
+            std::cerr << "❌ external block tx invalid (utxo missing)\n";
+            return false;
+        }
+    }
+
+    // 4) 모두 통과 → 실제 체인/UTXO 반영
+    utxoSet = std::move(utxoCopy);
+    chain.push_back(block);
+
+    // 5) pending에서 중복 제거
+    std::vector<UTXOTransaction> stillPending;
+    for (const auto &pendingTx : pendingTransactions)
+    {
+        bool included = false;
+        for (const auto &tx : block.getTransactions())
+        {
+            if (pendingTx.getId() == tx.getId())
+            {
+                included = true;
+                break;
+            }
+        }
+        if (!included)
+            stillPending.push_back(pendingTx);
+    }
+    pendingTransactions.swap(stillPending);
+
+    // DB에 연결되어 있으면 저장
+    if (database)
+    {
+        database->insertBlock(block, block.getTransactions());
+        database->upsertMempool(pendingTransactions);
+    }
+
     return true;
 }

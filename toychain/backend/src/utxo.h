@@ -29,12 +29,12 @@ class UTXOTransaction
 {
 private:
     std::string id;
-    std::string entropy;
     std::vector<TxInput> inputs;
     std::vector<TxOutput> outputs;
 
 public:
     UTXOTransaction(const std::vector<TxInput> &ins, const std::vector<TxOutput> &outs);
+    UTXOTransaction(const std::string &forcedId, const std::vector<TxInput> &ins, const std::vector<TxOutput> &outs);
 
     std::string getId() const { return id; }
     const std::vector<TxInput> &getInputs() const { return inputs; }
@@ -42,9 +42,6 @@ public:
 
     std::string calculateHash() const;
     std::string toString() const;
-
-private:
-    std::string generateEntropy() const;
 };
 
 class UTXOSet
