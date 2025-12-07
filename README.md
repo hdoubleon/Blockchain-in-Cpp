@@ -4,12 +4,34 @@
 백엔드(C++17) + 프런트(React)로 구성되며, 두 노드 간 P2P 전파를 시각적으로 확인할 수 있도록 구현했습니다.
 직접 만들어보며 블록체인이 어떻게 구성되고, 왜 탈중앙이 가치가 생기는지를 경험하는 과정입니다.
 
+## 🌱 Motivation
+
+이 프로젝트는 블록체인을 단순히 이론으로 이해하는 것이 아니라,  
+**실제로 동작하는 블록체인을 직접 구현하며 구조를 몸으로 느끼기 위해** 시작되었습니다.
+
 ## 목표
 
 - 블록·트랜잭션·UTXO 구조를 직접 다뤄보며 블록체인의 핵심 개념 이해
 - 두 노드(8080/8081) 사이 블록 전파를 통해 “탈중앙 동기화”를 체험
 - 왜 블록체인이 주목받는지(검열 저항, 중단 저항, 신뢰 최소화 등) 감 잡기
-
+- 
+## 🔄 Blockchain Flow: Transaction → Mining → Propagation
+	1.	Transaction Created
+	•	사용자가 React UI에서 alice → bob 트랜잭션을 추가함
+	•	트랜잭션이 mempool에 저장됨
+	•	노드들은 아직 미확정 상태임
+	2.	Mining
+	•	사용자가 “Mine Block” 버튼을 누름
+	•	해당 노드는 mempool의 트랜잭션을 모아 새로운 블록을 생성
+	•	PoW 난이도에 맞게 nonce를 찾음
+	•	성공 시 “Block mined” 로그 출력
+	3.	Propagation
+	•	새로운 블록이 PEERS 리스트에 등록된 다른 노드에게 전송됨
+	•	상대 노드가 블록을 검증한 뒤 자신의 체인에 추가
+	•	블록이 양쪽 노드에 동기화됨
+	4.	Chain Sync Visualization
+	•	프런트 UI에서 두 노드를 8080/8081로 열어 비교할 수 있음
+	•	동일한 height, same block_id 유지 확인
 ## 실행 화면
 
 📌 프런트엔드 메인 화면  
@@ -109,6 +131,69 @@
   </a>
 </p>
 
+## Project Structure
+
+.
+├── README.md
+├── LICENSE
+├── data/                      # 루트 데이터 (체인 백업 등)
+├── image/                     # 스크린샷 (영문 파일명)
+├── third_party/
+│   └── sha256.hpp             # 외부 해시 헤더(미사용)
+└── toychain/
+    ├── backend/
+    │   ├── CMakeLists.txt
+    │   ├── build/             # 빌드 산출물 (toychain_server 등)
+    │   ├── src/
+    │   │   ├── block.*        # 블록 구조/해시/마이닝
+    │   │   ├── blockchain.*   # 체인 관리, P2P 수신 처리
+    │   │   ├── server.*       # HTTP API/SSE, P2P 엔드포인트
+    │   │   ├── utxo.*         # 트랜잭션/UTXO 모델
+    │   │   └── db/Database.*  # SQLite 연동
+    │   └── include/ (없음)
+    ├── frontend/
+    │   ├── package.json
+    │   ├── src/
+    │   │   ├── App.jsx        # 노드 A/B 분리 뷰
+    │   │   ├── components/
+    │   │   │   ├── BlockchainView.*
+    │   │   │   ├── AddTransactionForm.*
+    │   │   │   ├── MiningAnimation.*
+    │   │   │   ├── UTXOList.*
+    │   │   │   └── EditBlockModal.*
+    │   │   └── App.css
+    │   └── dist/build/        # 프런트 빌드 산출물
+    └── data/
+        ├── chain.db           # 노드 데이터 (삭제/초기화용)
+        └── chain.dat
+
+
+
+## 📐 ToyChain Architecture Diagram (Markdown + ASCII)
+                       ┌──────────────────────────┐
+                       │         Frontend         │
+                       │       (React / Vite)     │
+                       │                          │
+                       │ - Create Transaction      │
+                       │ - Trigger Mining          │
+                       │ - View Blockchain         │
+                       └───────────────┬──────────┘
+                                       │ REST API
+                                       ▼
+             ┌────────────────────────────────────────────┐
+             │                 Backend (C++17)             │
+             │---------------------------------------------│
+             │  /transaction        → Add mempool tx       │
+             │  /mine              → Mine block            │
+             │  /blockchain        → Return chain          │
+             │  /sync              → Receive external block│
+             └───────────────┬────────────────────────────┘
+                             │  P2P Propagation
+                             ▼
+                  ┌───────────────────────┐
+                  │     Another Node      │
+                  │     Backend (C++)     │
+                  └───────────────────────┘
 ## 실행 방법
 
 필수: CMake, Node/NPM  
