@@ -15,49 +15,90 @@
 📌 프런트엔드 메인 화면  
 (트랜잭션 생성 / 블록 상태 확인)
 
-<img src="image/landing_screen.png" width="450">
+<p align="center">
+  <img src="image/landing_screen.png" width="450"><br>
+  <em>프런트 메인 화면</em>
+</p>
 
 ---
 
 📌 채굴 난이도 설정
 
-<img src="image/set_difficulty.png" width="450">
+<p align="center">
+  <img src="image/set_difficulty.png" width="450"><br>
+  <em>채굴 난이도 설정 화면</em>
+</p>
 
 ---
 
 📌 블록 채굴 시
 
-<img src="image/mining_in_progress.png" width="450">
+<p align="center">
+  <img src="image/mining_in_progress.png" width="450"><br>
+  <em>블록 채굴 진행 중 (nonce 탐색 중)</em>
+</p>
 
 ---
 
 📌 블록 채굴 후
 
-<img src="image/mining_complete.png" width="450">
-<img src="image/block_added_after_mining.png" width="450">
-<img src="image/mined_block_8080.png" width="450">
+<p align="center">
+  <img src="image/mining_complete.png" width="450"><br>
+  <em>채굴 완료 — 새로운 블록 생성</em>
+</p>
+
+<p align="center">
+  <img src="image/block_added_after_mining.png" width="450"><br>
+  <em>블록이 체인에 추가된 모습</em>
+</p>
+
+<p align="center">
+  <img src="image/mined_block_8080.png" width="450"><br>
+  <em>8080 노드에서 채굴된 블록 로그</em>
+</p>
 
 ---
 
 📌 트랜잭션 추가
 
-<img src="image/before_transaction.png" width="450">
+<p align="center">
+  <img src="image/before_transaction.png" width="450"><br>
+  <em>트랜잭션 추가 전 상태</em>
+</p>
 
 ---
 
 📌 트랜잭션 추가 후 및 블록 채굴
 
-<img src="image/transaction_submit.png" width="450">
-<img src="image/tx_added_then_mined.png" width="450">
+<p align="center">
+  <img src="image/transaction_submit.png" width="450"><br>
+  <em>트랜잭션 제출 화면</em>
+</p>
+
+<p align="center">
+  <img src="image/tx_added_then_mined.png" width="450"><br>
+  <em>트랜잭션 반영 후 채굴된 블록</em>
+</p>
 
 ---
 
 📌 두 노드 실행 모습  
 (8080 / 8081 로그 비교)
 
-<img src="image/node_8080_server_log.png" width="450">
-<img src="image/curl_blockchain_8081.png" width="450">
-<img src="image/node_8081_block_view.png" width="450">
+<p align="center">
+  <img src="image/node_8080_server_log.png" width="450"><br>
+  <em>8080 노드 서버 로그</em>
+</p>
+
+<p align="center">
+  <img src="image/curl_blockchain_8081.png" width="450"><br>
+  <em>8081 노드 블록체인 조회(curl)</em>
+</p>
+
+<p align="center">
+  <img src="image/node_8081_block_view.png" width="450"><br>
+  <em>8081 노드 블록 뷰</em>
+</p>
 [여기에 GIF 또는 이미지 추가]
 docs/screenshots/two-nodes-running.gif
 
