@@ -15,33 +15,33 @@
 📌 프런트엔드 메인 화면
 (트랜잭션 생성 / 블록 상태 확인)
 
-[프론트 메인](기본%20화면.pngpng)
+[Front Main](image/landing_screen.png)
 
 📌 채굴 난이도 설정
 
-[채굴 난이도 설정](난이도%20설정.pngpng)
+[Set Difficulty](image/set_difficulty.png)
 
 📌 블록 채굴 시
 
-[채굴 버튼 클릭](마이닝%20시.pngpng)
+[Mining in Progress](image/mining_in_progress.png)
 
 📌 블록 채굴 후
 
-[채굴 완료](마이닝%20완료.png)
-[블록 추가](마이닝%20후%20블록%20추가.png)
-[8080서버](마이닝%20후%208080%20사바.png)
+[Mining Complete](image/mining_complete.png)
+[Block Added](image/block_added_after_mining.png)
+[Node 8080 Log](image/mined_block_8080.png)
 📌 트랜잭션 추가
-[거래 추가 전](거래%20추가%20전.pngpng)
+[Before Transaction](image/before_transaction.png)
 
 📌 트랜잭션 추가 후 및 블록 채굴
-[거래 추가](트랜잭션%20추가%20시.pngpng)
-[마이닝](트랜잭션%20추가%20후%20마이닝.pngpng)
+[Transaction Submit](image/transaction_submit.png)
+[Tx Added then Mined](image/tx_added_then_mined.png)
 📌 두 노드 실행 모습
 
 (8080 / 8081 로그 비교)
-[8080서버로그](8080서버%20로그.png)
-[8081 로그 명령](8081%20블록%20보는%20명령.png)
-[8081 로그](8081%20노드%20블록%20보기.png)
+[Node 8080 Server Log](image/node_8080_server_log.png)
+[curl blockchain 8081](image/curl_blockchain_8081.png)
+[Node 8081 Block View](image/node_8081_block_view.png)
 [여기에 GIF 또는 이미지 추가]
 docs/screenshots/two-nodes-running.gif
 
@@ -57,7 +57,7 @@ docs/screenshots/two-nodes-running.gif
    - `PORT=8081 PEERS=http://localhost:8080 ./build/toychain_server`
 3. 프런트 실행  
    `cd toychain/frontend && npm install && npm run dev`  
-   기본 API_BASE는 8080입니다. 8081을 보고 싶으면 `src/App.jsx`의 `API_BASE`를 8081로 바꾼 프런트를 따로 띄우세요.
+   노드별 분리 뷰는 `VITE_API_A`/`VITE_API_B`로 설정(예: 8080/8081).
 
 ## 데모 시나리오 (녹화용)
 
