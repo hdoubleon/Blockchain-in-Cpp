@@ -102,7 +102,12 @@
 
 📌 블록 브레이크 시
 
-![▶ break.mp4 보기](image/break.mp4)
+<p align="center">
+  <a href="image/break.mp4">
+    <img src="image/break_thumb.png" width="450"><br>
+    <em>블록 브레이크 데모 영상 보기</em>
+  </a>
+</p>
 
 ## 실행 방법
 
