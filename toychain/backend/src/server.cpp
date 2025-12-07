@@ -142,6 +142,10 @@ static UTXOTransaction parseTxJson(const std::string &body)
 {
     // body 예시: {"tx_id":"...","inputs":[...],"outputs":[...]}
     std::string txId = extractQuoted(body, "\"tx_id\":\"");
+    if (txId.empty())
+    {
+        txId = extractQuoted(body, "\"id\":\""); // blockchain 응답 호환
+    }
     std::vector<TxInput> inputs;
     std::vector<TxOutput> outputs;
 
@@ -239,7 +243,8 @@ static Block parseBlockJson(const std::string &body)
     }
 
     Block blk(index, ts, txs, prev, nonce, diff);
-    blk.setHash(hash); // 신뢰 모드: 수신 해시 사용
+    // 신뢰 모드: 수신한 해시를 그대로 사용
+    blk.setHash(hash);
     return blk;
 }
 
@@ -247,7 +252,7 @@ static std::string txToJson(const UTXOTransaction &tx)
 {
     std::stringstream ss;
     ss << "{";
-    ss << "\"tx_id\":\"" << tx.getId() << "\",";
+    ss << "\"id\":\"" << tx.getId() << "\",";
     ss << "\"inputs\":[";
     const auto &inputs = tx.getInputs();
     for (size_t i = 0; i < inputs.size(); ++i)
