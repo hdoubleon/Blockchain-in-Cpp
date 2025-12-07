@@ -6,7 +6,10 @@ import EditBlockModal from "./components/EditBlockModal";
 import UTXOList from "./components/UTXOList";
 import "./App.css";
 
-const API_BASE = "http://localhost:8080";
+// 기본 노드와 보조 노드(API_BASE/PEER_API)를 분리해 합산 조회할 수 있다.
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8080";
+const PEER_API = import.meta.env.VITE_PEER_API || null;
+
 
 const computeHash = (block) => {
   const data = `${block.index}${block.timestamp}${block.previousHash}${block.nonce}${JSON.stringify(
@@ -47,28 +50,53 @@ function App() {
     return res.json();
   };
 
-  const fetchBalances = async () => {
-    const res = await fetch(`${API_BASE}/balances`);
+  const fetchJson = async (base, path, errMsg) => {
+    const res = await fetch(`${base}${path}`);
     if (!res.ok) {
-      throw new Error("Failed to fetch balances");
+      throw new Error(errMsg);
     }
     return res.json();
   };
 
-  const fetchPending = async () => {
-    const res = await fetch(`${API_BASE}/pending`);
-    if (!res.ok) {
-      throw new Error("Failed to fetch pending transactions");
-    }
-    return res.json();
+  const fetchBalances = async () => fetchJson(API_BASE, "/balances", "Failed to fetch balances");
+  const fetchPending = async () => fetchJson(API_BASE, "/pending", "Failed to fetch pending transactions");
+  const fetchUTXOs = async () => fetchJson(API_BASE, "/utxos", "Failed to fetch UTXO set");
+
+  // 보조 노드(PEER_API)가 있으면 합산해서 보여준다.
+  const fetchBalancesMerged = async () => {
+    const primary = await fetchBalances();
+    if (!PEER_API) return primary;
+    const peer = await fetchJson(PEER_API, "/balances", "Failed to fetch peer balances");
+    const merged = { ...primary };
+    Object.entries(peer || {}).forEach(([addr, amt]) => {
+      merged[addr] = (merged[addr] || 0) + amt;
+    });
+    return merged;
   };
 
-  const fetchUTXOs = async () => {
-    const res = await fetch(`${API_BASE}/utxos`);
-    if (!res.ok) {
-      throw new Error("Failed to fetch UTXO set");
+  const fetchUTXOsMerged = async () => {
+    const primary = await fetchUTXOs();
+    if (!PEER_API) return primary;
+    const peer = await fetchJson(PEER_API, "/utxos", "Failed to fetch peer UTXOs");
+    return [...(primary || []), ...(peer || [])];
+  };
+
+  const deriveUTXOFromChain = (chain = []) => {
+    const map = new Map(); // key: txId:index -> {address, amount}
+    for (const block of chain) {
+      for (const tx of block.transactions || []) {
+        // spend inputs
+        for (const input of tx.inputs || []) {
+          if (input.outputIndex < 0) continue; // coinbase dummy
+          map.delete(`${input.txId}:${input.outputIndex}`);
+        }
+        // add outputs
+        tx.outputs?.forEach((out, idx) => {
+          map.set(`${tx.id}:${idx}`, { txId: tx.id, index: idx, ...out });
+        });
+      }
     }
-    return res.json();
+    return Array.from(map.values());
   };
 
   const calculateValidity = (chain) => {
@@ -92,16 +120,35 @@ function App() {
       setLoading(true);
       const [cData, balanceData, pendingData, utxoData] = await Promise.all([
         fetchChain(),
-        fetchBalances(),
+        fetchBalancesMerged(),
         fetchPending(),
-        fetchUTXOs(),
+        fetchUTXOsMerged(),
       ]);
       chainData = cData;
-      setBlocks(cData.chain || []);
+      const chainArr = cData.chain || [];
+      // utxo 데이터로 outputs가 비어있는 tx를 보완
+      const outputsByTx = new Map();
+      (utxoData || []).forEach((u) => {
+        const arr = outputsByTx.get(u.txId) || [];
+        arr.push({ address: u.address, amount: u.amount, index: u.index });
+        outputsByTx.set(u.txId, arr);
+      });
+      const patchedBlocks = chainArr.map((b) => {
+        const txs = (b.transactions || []).map((tx) => {
+          if (!tx.outputs || tx.outputs.length === 0) {
+            const outs = outputsByTx.get(tx.id) || [];
+            return { ...tx, outputs: outs.sort((a, b) => a.index - b.index) };
+          }
+          return tx;
+        });
+        return { ...b, transactions: txs };
+      });
+      setBlocks(patchedBlocks);
       setDifficulty(cData.difficulty || 0);
       setBalances(balanceData || {});
       setPending(pendingData || []);
-      setUtxos(utxoData || []);
+      const derived = deriveUTXOFromChain(patchedBlocks);
+      setUtxos(derived); // 체인 기반으로 항상 재계산해 표시
       setBanner(null);
       setTamperedBlocks(null);
       setTamperMode(false);

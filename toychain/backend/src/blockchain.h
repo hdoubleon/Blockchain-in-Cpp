@@ -54,6 +54,7 @@ public:
 private:
     bool isUTXOInPending(const std::string &txId, int index) const;
     void applyTransactionToUTXOSet(const UTXOTransaction &tx);
+    void rebuildUTXOFromChain();
 };
 
 #endif

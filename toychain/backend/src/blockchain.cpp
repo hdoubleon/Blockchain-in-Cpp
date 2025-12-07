@@ -421,6 +421,18 @@ bool Blockchain::loadFromFile(const std::string &path)
     return true;
 }
 
+void Blockchain::rebuildUTXOFromChain()
+{
+    utxoSet = UTXOSet();
+    for (const auto &block : chain)
+    {
+        for (const auto &tx : block.getTransactions())
+        {
+            applyTransactionToUTXOSet(tx);
+        }
+    }
+}
+
 bool Blockchain::acceptExternalBlock(const Block &block)
 {
     // 1) 이전 해시/높이 검증
@@ -471,8 +483,9 @@ bool Blockchain::acceptExternalBlock(const Block &block)
     }
 
     // 4) 모두 통과 → 실제 체인/UTXO 반영
-    utxoSet = std::move(utxoCopy);
     chain.push_back(block);
+    // 전체 체인을 기준으로 UTXO 재구성해 일관성 보장
+    rebuildUTXOFromChain();
 
     // 5) pending에서 중복 제거
     std::vector<UTXOTransaction> stillPending;

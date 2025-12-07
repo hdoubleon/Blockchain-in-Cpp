@@ -26,7 +26,7 @@ function UTXOList({ utxos = [] }) {
             gap: "0.35rem",
           }}
         >
-          <div style={{ fontWeight: 700, color: "#0f172a" }}>
+          <div style={{ fontWeight: 700, color: "#0f172a", overflowWrap: "anywhere" }}>
             {utxo.address}
           </div>
           <div style={{ fontSize: "0.9rem", color: "#475569" }}>
