@@ -1,0 +1,3 @@
+/Users/max/Desktop/blockchain in c+/toychain/backend/CMakeFiles/toychain_server.dir
+/Users/max/Desktop/blockchain in c+/toychain/backend/CMakeFiles/edit_cache.dir
+/Users/max/Desktop/blockchain in c+/toychain/backend/CMakeFiles/rebuild_cache.dir

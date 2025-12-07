@@ -1,88 +1,67 @@
 #include "block.h"
-
-#include <ctime>
-#include <iomanip>
 #include <sstream>
+#include <iomanip>
+#include <openssl/sha.h>
+#include <iostream>
 
-namespace
+Block::Block(int idx, const std::vector<UTXOTransaction> &txs, const std::string &prevHash)
+    : index(idx), transactions(txs), previousHash(prevHash), nonce(0), difficulty(0)
 {
-    std::string hashToHex(std::size_t value)
-    {
-        std::ostringstream oss;
-        oss << std::hex << std::setw(sizeof(std::size_t) * 2) << std::setfill('0') << value;
-        return oss.str();
-    }
-} // namespace
-
-Block::Block(std::size_t index, std::vector<Transaction> transactions, std::string previousHash)
-    : index_(index),
-      timestamp_(getCurrentTimestamp()),
-      transactions_(std::move(transactions)),
-      previousHash_(std::move(previousHash)),
-      hash_(calculateHash()) {}
-
-const std::string &Block::getHash() const noexcept
-{
-    return hash_;
+    timestamp = std::time(nullptr);
+    hash = calculateHash();
 }
-
-const std::string &Block::getPreviousHash() const noexcept
+Block::Block(int idx,
+             long long ts,
+             const std::vector<UTXOTransaction> &txs,
+             const std::string &prevHash,
+             int nonceVal,
+             int diffVal)
+    : index(idx), timestamp(ts), transactions(txs), previousHash(prevHash), nonce(nonceVal), difficulty(diffVal)
 {
-    return previousHash_;
-}
-
-std::size_t Block::getIndex() const noexcept
-{
-    return index_;
-}
-
-const std::vector<Transaction> &Block::getTransactions() const noexcept
-{
-    return transactions_;
-}
-
-std::string Block::getTimestamp() const noexcept
-{
-    return timestamp_;
-}
-
-void Block::mine(std::size_t difficulty)
-{
-    std::string prefix(difficulty, '0');
-    while (hash_.substr(0, difficulty) != prefix)
-    {
-        ++nonce_;
-        hash_ = calculateHash();
-    }
+    hash = calculateHash(); // 외부에서 받은 hash와 비교할 때 사용할 예정
 }
 
 std::string Block::calculateHash() const
 {
-    std::ostringstream oss;
-    oss << index_ << timestamp_ << previousHash_ << nonce_;
-    for (const auto &tx : transactions_)
+    std::stringstream ss;
+    ss << index << timestamp << previousHash << nonce;
+
+    for (const auto &tx : transactions)
     {
-        oss << tx.toString();
+        ss << tx.toString();
     }
-    return hashToHex(std::hash<std::string>{}(oss.str()));
+
+    std::string data = ss.str();
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256((unsigned char *)data.c_str(), data.size(), hash);
+
+    std::stringstream hashStr;
+    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++)
+    {
+        hashStr << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
+    }
+
+    return hashStr.str();
 }
 
-bool Block::hasValidHash() const
+void Block::mineBlock(int diff, std::function<void(const std::string &, int)> onSample)
 {
-    return calculateHash() == hash_;
-}
+    difficulty = diff;
+    std::string target(diff, '0');
 
-std::string Block::getCurrentTimestamp()
-{
-    auto now = std::chrono::system_clock::now();
-    auto time = std::chrono::system_clock::to_time_t(now);
-    std::tm tm{};
-#ifdef _WIN32
-    localtime_s(&tm, &time);
-#else
-    localtime_r(&time, &tm);
-#endif
-    std::ostringstream oss;
-    oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
-    return oss.str();
+    while (hash.substr(0, diff) != target)
+    {
+        nonce++;
+        hash = calculateHash();
+
+        if (onSample && nonce % 5000 == 0)
+        {
+            onSample(hash, nonce);
+        }
+    }
+
+    std::cout << "Block mined: " << hash << std::endl;
+
+    if (onSample)
+        onSample(hash, nonce);
 }

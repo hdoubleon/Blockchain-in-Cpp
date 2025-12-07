@@ -1,30 +1,36 @@
 #include "blockchain.h"
-#include "transaction.h"
-
 #include <iostream>
+#include "db/Database.hpp"
 
-int main() {
+// 전방 선언
+void runServer(Blockchain &blockchain, const std::string &statePath);
+
+int main()
+{
     Blockchain chain;
     chain.setDifficulty(3);
 
-    chain.addTransaction(Transaction("Alice", "Bob", 5.0));
-    chain.addTransaction(Transaction("Charlie", "Dave", 2.5));
+    const std::string dataDir = "../data";
+    const std::string dbPath = dataDir + "/chain.db";
 
-    std::cout << "Mining pending transactions...\n";
-    chain.minePendingTransactions("Miner1");
-
-    for (const auto& block : chain.getChain()) {
-        std::cout << "Block #" << block.getIndex() << "\n";
-        std::cout << "  Timestamp: " << block.getTimestamp() << "\n";
-        std::cout << "  Hash: " << block.getHash() << "\n";
-        std::cout << "  Prev: " << block.getPreviousHash() << "\n";
-        std::cout << "  Transactions:\n";
-        for (const auto& tx : block.getTransactions()) {
-            std::cout << "    - " << tx.toString() << "\n";
-        }
-        std::cout << "\n";
+    Database db(dbPath);
+    if (db.isOpen())
+    {
+        chain.attachDatabase(&db);
     }
 
-    std::cout << "Blockchain valid? " << (chain.isChainValid() ? "Yes" : "No") << "\n";
+    const std::string statePath = "../data/chain.dat";
+    if (chain.loadFromFile(statePath))
+    {
+        std::cout << "Loaded blockchain state from " << statePath << "\n";
+    }
+    else
+    {
+        std::cout << "Starting new chain (no persisted state found).\n";
+    }
+
+    std::cout << "Starting ToyChain Blockchain Server...\n";
+    runServer(chain, statePath);
+
     return 0;
 }

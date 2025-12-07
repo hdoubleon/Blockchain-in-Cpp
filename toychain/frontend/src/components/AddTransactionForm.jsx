@@ -59,10 +59,45 @@ function AddTransactionForm({ onAdd, onMine }) {
           />
         </label>
       </div>
-      <div style={{ marginTop: "1rem", display: "flex", gap: "1rem" }}>
-        <button type="submit">Add</button>
-        <button type="button" onClick={onMine}>
-          Mine Block
+      <div style={{ marginTop: "1.5rem", display: "flex", gap: "1rem" }}>
+        <button
+          type="submit"
+          style={{
+            padding: "0.75rem 2rem",
+            fontSize: "1rem",
+            fontWeight: "600",
+            color: "white",
+            backgroundColor: "#3b82f6",
+            border: "none",
+            borderRadius: "0.5rem",
+            cursor: "pointer",
+            transition: "all 0.2s ease",
+            boxShadow: "0 2px 4px rgba(59, 130, 246, 0.3)",
+          }}
+          onMouseOver={(e) => e.target.style.backgroundColor = "#2563eb"}
+          onMouseOut={(e) => e.target.style.backgroundColor = "#3b82f6"}
+        >
+          ✓ Add Transaction
+        </button>
+        <button
+          type="button"
+          onClick={() => onMine()}
+          style={{
+            padding: "0.75rem 2rem",
+            fontSize: "1rem",
+            fontWeight: "600",
+            color: "white",
+            backgroundColor: "#10b981",
+            border: "none",
+            borderRadius: "0.5rem",
+            cursor: "pointer",
+            transition: "all 0.2s ease",
+            boxShadow: "0 2px 4px rgba(16, 185, 129, 0.3)",
+          }}
+          onMouseOver={(e) => e.target.style.backgroundColor = "#059669"}
+          onMouseOut={(e) => e.target.style.backgroundColor = "#10b981"}
+        >
+          ⛏️ Mine Block
         </button>
       </div>
     </form>

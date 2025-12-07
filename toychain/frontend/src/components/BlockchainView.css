@@ -59,14 +59,17 @@
 
 .block.invalid {
   border-color: #ef4444;
-  animation: shake 0.5s;
-  background: #fef2f2;
+  animation: shake 0.6s linear infinite alternate;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.35);
 }
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-  20%, 40%, 60%, 80% { transform: translateX(5px); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
 }
 
 .block-header {
@@ -97,6 +100,31 @@
 .status.invalid {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.block-break-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #b91c1c;
+  mix-blend-mode: multiply;
+  animation: glitch 0.8s infinite;
+}
+
+@keyframes glitch {
+  0% { clip-path: inset(0 0 80% 0); }
+  20% { clip-path: inset(20% 0 40% 0); }
+  40% { clip-path: inset(60% 0 20% 0); }
+  60% { clip-path: inset(10% 0 70% 0); }
+  80% { clip-path: inset(40% 0 30% 0); }
+  100% { clip-path: inset(0 0 0 0); }
 }
 
 .block-body {
@@ -199,11 +227,11 @@ summary:hover {
   background: repeating-linear-gradient(
     0deg,
     #ef4444,
-    #ef4444 10px,
-    transparent 10px,
-    transparent 20px
+    #ef4444 12px,
+    transparent 12px,
+    transparent 24px
   );
-  animation: dash 1s linear infinite;
+  animation: dash 0.8s linear infinite;
 }
 
 @keyframes dash {
