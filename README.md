@@ -99,8 +99,10 @@
   <img src="image/node_8081_block_view.png" width="450"><br>
   <em>8081 노드 블록 뷰</em>
 </p>
-[여기에 GIF 또는 이미지 추가]
-docs/screenshots/two-nodes-running.gif
+
+📌 블록 브레이크 시
+
+![▶ break.mp4 보기](image/break.mp4)
 
 ## 실행 방법
 
