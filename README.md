@@ -12,36 +12,52 @@
 
 ## 실행 화면
 
-📌 프런트엔드 메인 화면
+📌 프런트엔드 메인 화면  
 (트랜잭션 생성 / 블록 상태 확인)
 
-![Front Main](image/landing_screen.png)
+<img src="image/landing_screen.png" width="450">
+
+---
 
 📌 채굴 난이도 설정
 
-![Set Difficulty](image/set_difficulty.png)
+<img src="image/set_difficulty.png" width="450">
+
+---
 
 📌 블록 채굴 시
 
-![Mining in Progress](image/mining_in_progress.png)
+<img src="image/mining_in_progress.png" width="450">
+
+---
 
 📌 블록 채굴 후
 
-![Mining Complete](image/mining_complete.png)
-![Block Added](image/block_added_after_mining.png)
-![Node 8080 Log](image/mined_block_8080.png)
+<img src="image/mining_complete.png" width="450">
+<img src="image/block_added_after_mining.png" width="450">
+<img src="image/mined_block_8080.png" width="450">
+
+---
+
 📌 트랜잭션 추가
-![Before Transaction](image/before_transaction.png)
+
+<img src="image/before_transaction.png" width="450">
+
+---
 
 📌 트랜잭션 추가 후 및 블록 채굴
-![Transaction Submit](image/transaction_submit.png)
-![Tx Added then Mined](image/tx_added_then_mined.png)
-📌 두 노드 실행 모습
 
+<img src="image/transaction_submit.png" width="450">
+<img src="image/tx_added_then_mined.png" width="450">
+
+---
+
+📌 두 노드 실행 모습  
 (8080 / 8081 로그 비교)
-![Node 8080 Server Log](image/node_8080_server_log.png)
-![curl blockchain 8081](image/curl_blockchain_8081.png)
-![Node 8081 Block View](image/node_8081_block_view.png)
+
+<img src="image/node_8080_server_log.png" width="450">
+<img src="image/curl_blockchain_8081.png" width="450">
+<img src="image/node_8081_block_view.png" width="450">
 [여기에 GIF 또는 이미지 추가]
 docs/screenshots/two-nodes-running.gif
 
