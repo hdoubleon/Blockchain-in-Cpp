@@ -147,6 +147,7 @@ std::string Block::computeHash() const {
     for (const auto &tx : transactions) ss << tx.toString();
     return sha256(ss.str());
 }
+```
 위와 같이 블록 전체 내용을 직렬화한 뒤 SHA-256 해시를 생성하는 방식이기 때문에,
 블록의 내용이 조금이라도 달라지면 해시가 전혀 다른 값이 되어 체인이 끊어지게 됩니다.
 이러한 구조 덕분에 블록체인은 조작이 매우 어렵습니다.
@@ -159,9 +160,11 @@ while (true) {
     if (hash.substr(0, difficulty) == std::string(difficulty, '0')) break;
     nonce++;
 }
-	•	원하는 해시를 만들기 위해 수천~수백만 번 시도
-	•	이를 8080/8081 노드 각각에서 동일하게 검증
-	•	임의의 사용자나 공격자가 “조작된 블록”을 만들어 삽입하려면
+```
+
+•	원하는 해시를 만들기 위해 수천~수백만 번 시도
+•	이를 8080/8081 노드 각각에서 동일하게 검증
+•	임의의 사용자나 공격자가 “조작된 블록”을 만들어 삽입하려면
 동일한 난이도로 다시 채굴해야합니다
 따라서 현실적으로:
 
@@ -192,6 +195,7 @@ void Node::broadcastBlock(const Block& b) {
         http_post(peer + "/sync", b.serialize());
     }
 }
+```
 
 이 전파 과정은 다음과 같은 의미를 가집니다:
 	•	데이터의 진실 여부를 중앙 서버가 판단하지 않습니다.
